@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Burger Hause Artesanal - Gestão</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: #fff;
+}
+header {
+    background: #1c1c1c;
+    padding: 15px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+}
+nav {
+    display: flex;
+}
+nav button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: #222;
+    color: #fff;
+}
+nav button.active {
+    background: #e63946;
+}
+section {
+    padding: 15px;
+    display: none;
+}
+section.active {
+    display: block;
+}
+input, select, button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+}
+button.primary {
+    background: #e63946;
+    color: #fff;
+    font-weight: bold;
+}
+.card {
+    background: #1f1f1f;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 10px;
+}
+.total {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<header>🍔 Burger Hause Artesanal</header>
+
+<nav>
+<button onclick="trocar('pedidos')" class="active">Pedidos</button>
+<button onclick="trocar('entregas')">Entregas</button>
+<button onclick="trocar('caixa')">Caixa</button>
+</nav>
+
+<section id="pedidos" class="active">
+<h3>Novo Pedido</h3>
+
+<input id="pedido" placeholder="Pedido">
+<input id="cliente" placeholder="Cliente">
+<input id="valor" type="number" placeholder="Valor R$">
+
+<select id="tipo">
+<option value="Local">Local</option>
+<option value="Entrega">Entrega</option>
+</select>
+
+<input id="endereco" placeholder="Endereço (se entrega)">
+
+<select id="pagamento">
+<option value="Pix">Pix</option>
+<option value="Dinheiro">Dinheiro</option>
+<option value="Cartão">Cartão</option>
+</select>
+
+<button class="primary" onclick="salvar()">Salvar Pedido</button>
+
+<h3>Pedidos do Dia</h3>
+<div id="listaPedidos"></div>
+</section>
+
+<section id="entregas">
+<h3>Entregas</h3>
+<div id="listaEntregas"></div>
+</section>
+
+<section id="caixa">
+<h3>Caixa do Dia</h3>
+<p id="resumo"></p>
+<button onclick="fecharDia()">Fechar Caixa (Limpar Dia)</button>
+</section>
+
+<script>
+let dataHoje = new Date().toLocaleDateString();
+let pedidos = JSON.parse(localStorage.getItem("pedidos_v2")) || [];
+
+function trocar(id) {
+    document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+    document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    event.target.classList.add("active");
+}
+
+function salvar() {
+    const pedido = pedidoEl.value;
+    const cliente = clienteEl.value;
+    const valor = parseFloat(valorEl.value);
+    const tipo = tipoEl.value;
+    const endereco = enderecoEl.value;
+    const pagamento = pagamentoEl.value;
+
+    if (!pedido || !valor) {
+        alert("Preencha pedido e valor");
+        return;
+    }
+
+    pedidos.push({
+        data: dataHoje, pedido, cliente, valor,
+        tipo, endereco, pagamento, status: "Em preparo"
+    });
+
+    localStorage.setItem("pedidos_v2", JSON.stringify(pedidos));
+    document.querySelectorAll("input").forEach(i => i.value = "");
+    atualizar();
+}
+
+function atualizar() {
+    let lista = document.getElementById("listaPedidos");
+    let entregas = document.getElementById("listaEntregas");
+    lista.innerHTML = "";
+    entregas.innerHTML = "";
+
+    let pix=0, dinheiro=0, cartao=0;
+
+    pedidos.filter(p=>p.data===dataHoje).forEach((p,i)=>{
+        if(p.pagamento==="Pix") pix+=p.valor;
+        if(p.pagamento==="Dinheiro") dinheiro+=p.valor;
+        if(p.pagamento==="Cartão") cartao+=p.valor;
+
+        lista.innerHTML += `
+        <div class="card">
+        <strong>${p.pedido}</strong><br>
+        Cliente: ${p.cliente || "-"}<br>
+        R$ ${p.valor.toFixed(2)}<br>
+        Status: ${p.status}<br>
+        <button onclick="status(${i})">Avançar Status</button>
+        </div>`;
+
+        if(p.tipo==="Entrega") {
+            entregas.innerHTML += `
+            <div class="card">
+            ${p.pedido}<br>
+            ${p.endereco}<br>
+            Status: ${p.status}
+            </div>`;
+        }
+    });
+
+    document.getElementById("resumo").innerHTML =
+        `Pix: R$ ${pix.toFixed(2)}<br>
+         Dinheiro: R$ ${dinheiro.toFixed(2)}<br>
+         Cartão: R$ ${cartao.toFixed(2)}<br>
+         <strong>Total: R$ ${(pix+dinheiro+cartao).toFixed(2)}</strong>`;
+}
+
+function status(i){
+    let st = ["Em preparo","Saiu","Entregue"];
+    let atual = st.indexOf(pedidos[i].status);
+    pedidos[i].status = st[(atual+1)%3];
+    localStorage.setItem("pedidos_v2", JSON.stringify(pedidos));
+    atualizar();
+}
+
+function fecharDia(){
+    if(confirm("Deseja limpar os pedidos do dia?")){
+        pedidos = pedidos.filter(p=>p.data!==dataHoje);
+        localStorage.setItem("pedidos_v2", JSON.stringify(pedidos));
+        atualizar();
+    }
+}
+
+const pedidoEl = document.getElementById("pedido");
+const clienteEl = document.getElementById("cliente");
+const valorEl = document.getElementById("valor");
+const tipoEl = document.getElementById("tipo");
+const enderecoEl = document.getElementById("endereco");
+const pagamentoEl = document.getElementById("pagamento");
+
+atualizar();
+</script>
+
+</body>
+</html>
