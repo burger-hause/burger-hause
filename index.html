@@ -3,50 +3,47 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Burger Hause Artesanal - Sistema</title>
+<title>Burger Hause Artesanal</title>
 
 <style>
 body {
   margin: 0;
   font-family: Arial, sans-serif;
   background: #111;
-  color: #fff;
+  color: #000;
 }
 
-/* MENU LATERAL */
+/* MENU */
 .sidebar {
   width: 240px;
   height: 100vh;
   background: #000;
   position: fixed;
-  left: 0;
-  top: 0;
   padding: 20px;
 }
 
 .logo {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .logo img {
   width: 150px;
 }
 
-/* MENU */
-.menu button {
+/* BOTÕES */
+.menu button, .btn {
   width: 100%;
-  margin: 10px 0;
-  padding: 12px;
+  margin: 5px 0;
+  padding: 10px;
   background: #b30000;
   border: none;
   color: #fff;
   cursor: pointer;
-  font-size: 16px;
   border-radius: 5px;
 }
 
-.menu button:hover {
+.menu button:hover, .btn:hover {
   background: #ff0000;
 }
 
@@ -54,14 +51,7 @@ body {
 .content {
   margin-left: 260px;
   padding: 20px;
-}
-
-.section {
-  display: none;
-}
-
-.section.active {
-  display: block;
+  color: #fff;
 }
 
 input, select {
@@ -72,27 +62,20 @@ input, select {
   border: none;
 }
 
+/* CARDS */
 .card {
-  background: #1c1c1c;
-  padding: 15px;
+  padding: 10px;
   margin: 10px 0;
   border-radius: 5px;
 }
 
-.status {
-  font-weight: bold;
-  margin-top: 5px;
-}
+.preparo { background: #fff; color:#000; }
+.pronto { background: #b30000; color:#fff; }
+.entrega { background: #006400; color:#fff; }
 
-.btn {
-  margin-top: 5px;
-  padding: 8px;
-  background: #ff0000;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  border-radius: 5px;
-}
+/* SEÇÕES */
+.section { display: none; }
+.section.active { display: block; }
 </style>
 </head>
 
@@ -103,12 +86,11 @@ input, select {
   <div class="logo">
     <img src="./logo.png.jpg">
   </div>
-
   <div class="menu">
-    <button onclick="showSection('pedidos')">Pedidos</button>
-    <button onclick="showSection('entregas')">Entregas</button>
-    <button onclick="showSection('financeiro')">Financeiro</button>
-    <button onclick="novoPeriodo()">Novo Período</button>
+    <button onclick="show('pedidos')">Pedidos</button>
+    <button onclick="show('entregas')">Entregas</button>
+    <button onclick="show('financeiro')">Financeiro</button>
+    <button onclick="novoDia()">Novo Dia</button>
   </div>
 </div>
 
@@ -122,17 +104,22 @@ input, select {
   <input id="cliente" placeholder="Cliente">
   <input id="pedido" placeholder="Pedido">
   <select id="tipo">
-    <option value="Local">Local</option>
-    <option value="Entrega">Entrega</option>
+    <option>Local</option>
+    <option>Entrega</option>
   </select>
+
+  <select id="pagamento">
+    <option>Pix</option>
+    <option>Cartão</option>
+    <option>Dinheiro</option>
+  </select>
+
   <input id="valor" type="number" placeholder="Valor">
+
   <button class="btn" onclick="addPedido()">Adicionar Pedido</button>
 
-  <h3>Em preparo</h3>
-  <div id="listaPreparo"></div>
-
-  <h3>Para entrega</h3>
-  <div id="listaEntrega"></div>
+  <h3>Pedidos Ativos</h3>
+  <div id="listaPedidos"></div>
 </div>
 
 <!-- ENTREGAS -->
@@ -150,80 +137,121 @@ input, select {
 </div>
 
 <script>
-let dataHoje = new Date().toLocaleDateString();
+let hoje = new Date().toLocaleDateString("pt-BR");
 let dados = JSON.parse(localStorage.getItem("burger")) || {};
 
-if (!dados[dataHoje]) {
-  dados[dataHoje] = { pedidos: [], financeiro: 0 };
+if (!dados[hoje]) {
+  dados[hoje] = { pedidos: [], Pix:0, Cartão:0, Dinheiro:0, Total:0 };
 }
 
 function salvar() {
   localStorage.setItem("burger", JSON.stringify(dados));
 }
 
-function showSection(id) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+function show(id) {
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
 }
 
 function addPedido() {
-  let p = {
+  const agora = new Date();
+  const p = {
     cliente: cliente.value,
     pedido: pedido.value,
     tipo: tipo.value,
+    pagamento: pagamento.value,
     valor: Number(valor.value),
-    status: "Em preparo"
+    status: "Em preparo",
+    data: hoje,
+    hora: agora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})
   };
 
-  dados[dataHoje].pedidos.push(p);
-  dados[dataHoje].financeiro += p.valor;
+  dados[hoje].pedidos.push(p);
+  dados[hoje][p.pagamento] += p.valor;
+  dados[hoje].Total += p.valor;
+
   salvar();
   render();
 }
 
-function alterarStatus(i) {
-  let p = dados[dataHoje].pedidos[i];
-  if (p.status === "Em preparo") p.status = "Pronto";
-  else if (p.status === "Pronto") p.status = "Saiu para entrega";
+function mudarStatus(i) {
+  let s = dados[hoje].pedidos[i];
+  if (s.status === "Em preparo") s.status = "Pronto";
+  else if (s.status === "Pronto") s.status = "Saiu para entrega";
+  else if (s.status === "Saiu para entrega") s.status = "Entregue";
   salvar();
   render();
 }
 
-function excluirPedido(i) {
-  dados[dataHoje].financeiro -= dados[dataHoje].pedidos[i].valor;
-  dados[dataHoje].pedidos.splice(i, 1);
+function excluir(i) {
+  let p = dados[hoje].pedidos[i];
+  dados[hoje][p.pagamento] -= p.valor;
+  dados[hoje].Total -= p.valor;
+  dados[hoje].pedidos.splice(i,1);
   salvar();
   render();
+}
+
+function imprimir(i) {
+  const p = dados[hoje].pedidos[i];
+  const w = window.open("", "", "width=300");
+  w.document.write(`
+  <body style="font-family:monospace;width:80mm">
+  <h3 style="text-align:center">BURGER HAUSE ARTESANAL</h3>
+  <hr>
+  Data: ${p.data}<br>
+  Hora: ${p.hora}<br>
+  Cliente: ${p.cliente}<br>
+  Tipo: ${p.tipo}<br>
+  Pagamento: ${p.pagamento}
+  <hr>
+  Pedido:<br>${p.pedido}
+  <hr>
+  TOTAL: R$ ${p.valor.toFixed(2)}
+  <script>window.print();window.close()</script>
+  </body>
+  `);
 }
 
 function render() {
-  listaPreparo.innerHTML = "";
-  listaEntrega.innerHTML = "";
+  listaPedidos.innerHTML = "";
   listaEntregas.innerHTML = "";
 
-  dados[dataHoje].pedidos.forEach((p, i) => {
-    let div = document.createElement("div");
-    div.className = "card";
-    div.innerHTML = `
-      <b>${p.cliente}</b><br>
-      ${p.pedido} - R$ ${p.valor}<br>
-      <span class="status">${p.status}</span><br>
-      <button class="btn" onclick="alterarStatus(${i})">Mudar status</button>
-      <button class="btn" onclick="excluirPedido(${i})">Excluir</button>
+  dados[hoje].pedidos.forEach((p,i)=>{
+    if (p.status === "Entregue") return;
+
+    let c = document.createElement("div");
+    c.className = "card " + (p.status==="Em preparo"?"preparo":p.status==="Pronto"?"pronto":"entrega");
+
+    c.innerHTML = `
+      <b>${p.cliente}</b> (${p.hora})<br>
+      ${p.pedido}<br>
+      R$ ${p.valor}<br>
+      Status: ${p.status}<br>
+      <button class="btn" onclick="mudarStatus(${i})">Status</button>
+      <button class="btn" onclick="imprimir(${i})">Imprimir</button>
+      <button class="btn" onclick="excluir(${i})">Excluir</button>
     `;
 
-    if (p.tipo === "Entrega") listaEntrega.appendChild(div);
-    else listaPreparo.appendChild(div);
+    listaPedidos.appendChild(c);
 
-    if (p.status === "Saiu para entrega") listaEntregas.appendChild(div.cloneNode(true));
+    if (p.status === "Saiu para entrega") {
+      listaEntregas.appendChild(c.cloneNode(true));
+    }
   });
 
-  financeiroDia.innerHTML = `<h3>Total: R$ ${dados[dataHoje].financeiro}</h3>`;
+  financeiroDia.innerHTML = `
+    Pix: R$ ${dados[hoje].Pix}<br>
+    Cartão: R$ ${dados[hoje].Cartão}<br>
+    Dinheiro: R$ ${dados[hoje].Dinheiro}<br>
+    <hr>
+    <b>Total: R$ ${dados[hoje].Total}</b>
+  `;
 }
 
-function novoPeriodo() {
-  dataHoje = new Date().toLocaleDateString();
-  if (!dados[dataHoje]) dados[dataHoje] = { pedidos: [], financeiro: 0 };
+function novoDia() {
+  hoje = new Date().toLocaleDateString("pt-BR");
+  if (!dados[hoje]) dados[hoje] = { pedidos: [], Pix:0, Cartão:0, Dinheiro:0, Total:0 };
   salvar();
   render();
 }
