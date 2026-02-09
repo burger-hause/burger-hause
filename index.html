@@ -6,133 +6,271 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body { font-family: Arial; background:#111; color:#fff; margin:0; padding:20px }
-h2 { margin-top:0 }
-input, select, button { width:100%; padding:10px; margin:5px 0 }
-button { background:#b30000; color:#fff; border:none; border-radius:5px }
-button:hover { background:#ff0000 }
-.card { background:#fff; color:#000; padding:10px; margin:8px 0; border-radius:5px }
-hr { border:1px dashed #000 }
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial;background:#f2f2f2}
+.container{display:flex;height:100vh}
+
+/* MENU LATERAL */
+.sidebar{
+  width:240px;
+  background:#111;
+  color:#fff;
+  padding:20px;
+}
+.sidebar img{
+  width:100%;
+  margin-bottom:20px;
+}
+.sidebar button{
+  width:100%;
+  padding:12px;
+  margin:6px 0;
+  background:#b30000;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  border-radius:5px;
+}
+.sidebar button:hover{background:#ff0000}
+
+/* CONTEÚDO */
+.content{
+  flex:1;
+  padding:20px;
+  overflow:auto;
+}
+h2{margin-top:0}
+
+input,select,textarea{
+  width:100%;
+  padding:10px;
+  margin:5px 0;
+}
+
+.card{
+  background:#fff;
+  padding:10px;
+  margin:10px 0;
+  border-radius:5px;
+}
+
+.status-preparo{background:#fff}
+.status-pronto{background:#ffcccc}
+.status-entrega{background:#ccffcc}
+
+.actions button{
+  margin:5px 5px 0 0;
+  padding:6px 10px;
+}
 </style>
 </head>
 
 <body>
+<div class="container">
 
-<h2>Burger Hause – Pedidos</h2>
+<!-- MENU -->
+<div class="sidebar">
+  <img src="logo.png.jpg">
+  <button onclick="aba('pedidos')">Pedidos</button>
+  <button onclick="aba('entregas')">Entregas</button>
+  <button onclick="aba('financeiro')">Financeiro</button>
+  <button onclick="aba('historico')">Histórico</button>
+  <button onclick="novoDia()">🗓 Novo Dia</button>
+</div>
 
-<button onclick="novoDia()">🗓️ Novo Dia</button>
+<!-- CONTEÚDO -->
+<div class="content">
 
-<input id="cliente" placeholder="Cliente">
-<input id="pedido" placeholder="Pedido">
+<!-- PEDIDOS -->
+<div id="pedidos">
+  <h2>Novo Pedido</h2>
+  <input id="cliente" placeholder="Cliente">
+  <textarea id="pedido" placeholder="Pedido"></textarea>
 
-<select id="tipo" onchange="mostrarEndereco()">
-  <option value="Local">Local</option>
-  <option value="Entrega">Entrega</option>
-</select>
+  <select id="tipo" onchange="toggleEndereco()">
+    <option value="Local">Local</option>
+    <option value="Entrega">Entrega</option>
+  </select>
 
-<input id="endereco" placeholder="Endereço de entrega" style="display:none">
+  <input id="endereco" placeholder="Endereço de entrega" style="display:none">
 
-<select id="pagamento">
-  <option>Pix</option>
-  <option>Cartao</option>
-  <option>Dinheiro</option>
-</select>
+  <select id="pagamento">
+    <option value="Pix">Pix</option>
+    <option value="Cartao">Cartão</option>
+    <option value="Dinheiro">Dinheiro</option>
+  </select>
 
-<input id="valor" type="number" placeholder="Valor">
+  <input id="valor" type="number" placeholder="Valor">
 
-<button onclick="add()">Adicionar Pedido</button>
+  <button onclick="addPedido()">Adicionar Pedido</button>
 
-<h3>Pedidos do dia</h3>
-<div id="lista"></div>
+  <h2>Pedidos do Dia</h2>
+  <div id="listaPedidos"></div>
+</div>
+
+<!-- ENTREGAS -->
+<div id="entregas" style="display:none">
+  <h2>Entregas</h2>
+  <div id="listaEntregas"></div>
+</div>
+
+<!-- FINANCEIRO -->
+<div id="financeiro" style="display:none">
+  <h2>Financeiro do Dia</h2>
+  <p>Pix: R$ <span id="fPix">0</span></p>
+  <p>Cartão: R$ <span id="fCartao">0</span></p>
+  <p>Dinheiro: R$ <span id="fDinheiro">0</span></p>
+  <hr>
+  <h3>Total: R$ <span id="fTotal">0</span></h3>
+</div>
+
+<!-- HISTÓRICO -->
+<div id="historico" style="display:none">
+  <h2>Histórico</h2>
+  <div id="listaDias"></div>
+  <div id="historicoPedidos"></div>
+</div>
+
+</div>
+</div>
 
 <script>
 let dados = JSON.parse(localStorage.getItem("burger")) || {};
 let hoje = new Date().toLocaleDateString("pt-BR");
 
-function baseDia() {
-  if (!dados[hoje]) dados[hoje] = { pedidos: [] };
+function baseDia(d=hoje){
+  if(!dados[d]) dados[d]={pedidos:[]};
 }
+
 baseDia();
 
-function salvar() {
-  localStorage.setItem("burger", JSON.stringify(dados));
+function salvar(){
+  localStorage.setItem("burger",JSON.stringify(dados));
 }
 
-function mostrarEndereco() {
-  endereco.style.display = tipo.value === "Entrega" ? "block" : "none";
-}
-
-function add() {
-  if (!cliente.value || !pedido.value || !valor.value) {
-    alert("Preencha cliente, pedido e valor");
-    return;
-  }
-
-  let agora = new Date();
-
-  let p = {
-    cliente: cliente.value,
-    pedido: pedido.value,
-    tipo: tipo.value,
-    endereco: tipo.value === "Entrega" ? endereco.value : "",
-    pagamento: pagamento.value,
-    valor: Number(valor.value),
-    data: hoje,
-    hora: agora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})
-  };
-
-  dados[hoje].pedidos.push(p);
-  salvar();
+function aba(id){
+  ["pedidos","entregas","financeiro","historico"].forEach(a=>{
+    document.getElementById(a).style.display="none";
+  });
+  document.getElementById(id).style.display="block";
   render();
-
-  cliente.value = pedido.value = endereco.value = valor.value = "";
 }
 
-function novoDia() {
+function toggleEndereco(){
+  endereco.style.display = tipo.value==="Entrega"?"block":"none";
+}
+
+function novoDia(){
   hoje = new Date().toLocaleDateString("pt-BR");
   baseDia();
   salvar();
   render();
 }
 
-function imprimir(p) {
-  let w = window.open("", "", "width=300");
-  w.document.write(`
-    <body style="font-family:monospace;width:80mm">
-      <h3 style="text-align:center">BURGER HAUSE ARTESANAL</h3>
-      <hr>
-      Data: ${p.data}<br>
-      Hora: ${p.hora}<br>
-      Cliente: ${p.cliente}<br>
-      Tipo: ${p.tipo}<br>
-      ${p.endereco ? "Endereço: "+p.endereco+"<br>" : ""}
-      Pagamento: ${p.pagamento}
-      <hr>
-      Pedido:<br>${p.pedido}
-      <hr>
-      <b>Total: R$ ${p.valor.toFixed(2)}</b>
-      <script>window.print();window.close()</script>
-    </body>
-  `);
+function addPedido(){
+  if(!cliente.value||!pedido.value||!valor.value)return alert("Preencha tudo");
+
+  let agora=new Date();
+  let p={
+    cliente:cliente.value,
+    pedido:pedido.value,
+    tipo:tipo.value,
+    endereco:tipo.value==="Entrega"?endereco.value:"",
+    pagamento:pagamento.value,
+    valor:Number(valor.value),
+    status:"Em preparo",
+    data:hoje,
+    hora:agora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})
+  };
+
+  dados[hoje].pedidos.push(p);
+  salvar();
+  render();
+
+  cliente.value=pedido.value=endereco.value=valor.value="";
 }
 
-function render() {
-  lista.innerHTML = "";
-  dados[hoje].pedidos.forEach(p => {
-    lista.innerHTML += `
-      <div class="card">
-        <b>${p.cliente}</b> (${p.hora})<br>
-        ${p.pedido}<br>
-        ${p.tipo}${p.endereco ? " – "+p.endereco : ""}<br>
-        ${p.pagamento} – R$ ${p.valor}<br><br>
-        <button onclick='imprimir(${JSON.stringify(p)})'>Imprimir</button>
+function statusCor(s){
+  if(s==="Pronto")return"status-pronto";
+  if(s==="Saiu")return"status-entrega";
+  return"status-preparo";
+}
+
+function render(){
+  baseDia();
+  listaPedidos.innerHTML="";
+  listaEntregas.innerHTML="";
+
+  let f={Pix:0,Cartao:0,Dinheiro:0};
+
+  dados[hoje].pedidos.forEach((p,i)=>{
+    let card=`
+    <div class="card ${statusCor(p.status)}">
+      <b>${p.cliente}</b> (${p.hora})<br>
+      ${p.pedido}<br>
+      ${p.tipo} ${p.endereco}<br>
+      ${p.pagamento} – R$ ${p.valor}<br>
+      Status: ${p.status}<br>
+
+      <div class="actions">
+        <button onclick="p.status='Em preparo';salvar();render()">Preparo</button>
+        <button onclick="p.status='Pronto';salvar();render()">Pronto</button>
+        <button onclick="p.status='Saiu';salvar();render()">Saiu</button>
+        <button onclick="p.status='Entregue';salvar();render()">Entregue</button>
+        <button onclick="imprimir(${JSON.stringify(p)})">Imprimir</button>
+        <button onclick="dados[hoje].pedidos.splice(${i},1);salvar();render()">Excluir</button>
       </div>
-    `;
+    </div>`;
+    listaPedidos.innerHTML+=card;
+
+    if(p.tipo==="Entrega") listaEntregas.innerHTML+=card;
+    if(p.status==="Entregue") f[p.pagamento]+=p.valor;
   });
+
+  fPix.innerText=f.Pix;
+  fCartao.innerText=f.Cartao;
+  fDinheiro.innerText=f.Dinheiro;
+  fTotal.innerText=f.Pix+f.Cartao+f.Dinheiro;
+
+  renderHistorico();
+}
+
+function renderHistorico(){
+  listaDias.innerHTML="";
+  historicoPedidos.innerHTML="";
+  Object.keys(dados).forEach(d=>{
+    listaDias.innerHTML+=`<button onclick="verDia('${d}')">${d}</button>`;
+  });
+}
+
+function verDia(d){
+  historicoPedidos.innerHTML="";
+  dados[d].pedidos.forEach(p=>{
+    historicoPedidos.innerHTML+=`
+      <div class="card">
+        ${p.data} ${p.hora}<br>
+        ${p.cliente} – ${p.pedido}<br>
+        ${p.status}
+      </div>`;
+  });
+}
+
+function imprimir(p){
+  let w=window.open("","","width=300");
+  w.document.write(`
+  <body style="font-family:monospace">
+  BURGER HAUSE ARTESANAL<br>
+  ${p.data} ${p.hora}<br>
+  Cliente: ${p.cliente}<br>
+  ${p.tipo}<br>
+  ${p.endereco}<br>
+  ${p.pedido}<br>
+  ${p.pagamento} R$ ${p.valor}<br>
+  <script>window.print();window.close()</script>
+  </body>`);
 }
 
 render();
 </script>
-
 </body>
 </html>
