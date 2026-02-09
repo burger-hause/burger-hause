@@ -2,186 +2,69 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Burger Hause Artesanal</title>
+<title>Burger Hause - TESTE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body { margin:0; font-family:Arial; background:#111; color:#fff; }
-.sidebar { width:240px; height:100vh; background:#000; position:fixed; padding:20px; }
-.logo img { width:150px; display:block; margin:auto; }
-.menu button,.btn {
-  width:100%; padding:10px; margin:5px 0;
-  background:#b30000; border:none; color:#fff; border-radius:5px;
-}
-.menu button:hover,.btn:hover { background:#ff0000; }
-.content { margin-left:260px; padding:20px; }
-.section { display:none; }
-.section.active { display:block; }
-input,select { width:100%; padding:8px; margin:4px 0; }
-.card { padding:10px; margin:8px 0; border-radius:5px; }
-.preparo { background:#fff; color:#000; }
-.pronto { background:#b30000; }
-.entrega { background:#006400; }
+body { font-family: Arial; background:#111; color:#fff; margin:0; padding:20px }
+input, select, button { width:100%; padding:10px; margin:5px 0 }
+.card { background:#fff; color:#000; padding:10px; margin:5px 0 }
 </style>
 </head>
 
 <body>
 
-<div class="sidebar">
-  <div class="logo"><img src="logo.png.jpg"></div>
-  <div class="menu">
-    <button onclick="show('pedidos')">Pedidos</button>
-    <button onclick="show('entregas')">Entregas</button>
-    <button onclick="show('financeiro')">Financeiro</button>
-    <button onclick="show('historico')">Histórico</button>
-    <button onclick="novoDia()">Novo Dia</button>
-  </div>
-</div>
+<h2>Burger Hause – Teste Funcionando</h2>
 
-<div class="content">
+<input id="cliente" placeholder="Cliente">
+<input id="pedido" placeholder="Pedido">
+<select id="pagamento">
+  <option>Pix</option>
+  <option>Cartao</option>
+  <option>Dinheiro</option>
+</select>
+<input id="valor" type="number" placeholder="Valor">
 
-<!-- PEDIDOS -->
-<div id="pedidos" class="section active">
-  <h2>Novo Pedido</h2>
-  <input id="cliente" placeholder="Cliente">
-  <input id="pedido" placeholder="Pedido">
-  <select id="tipo">
-    <option>Local</option>
-    <option>Entrega</option>
-  </select>
-  <select id="pagamento">
-    <option>Pix</option>
-    <option>Cartao</option>
-    <option>Dinheiro</option>
-  </select>
-  <input id="valor" type="number" placeholder="Valor">
-  <button class="btn" onclick="addPedido()">Adicionar</button>
-  <div id="listaPedidos"></div>
-</div>
+<button onclick="add()">Adicionar Pedido</button>
 
-<!-- ENTREGAS -->
-<div id="entregas" class="section">
-  <h2>Entregas</h2>
-  <div id="listaEntregas"></div>
-</div>
-
-<!-- FINANCEIRO -->
-<div id="financeiro" class="section">
-  <h2>Financeiro</h2>
-  <div id="financeiroDia"></div>
-</div>
-
-<!-- HISTÓRICO -->
-<div id="historico" class="section">
-  <h2>Histórico por Dia</h2>
-  <div id="listaDias"></div>
-  <div id="detalheDia"></div>
-</div>
-
-</div>
+<h3>Pedidos</h3>
+<div id="lista"></div>
 
 <script>
-let dados = JSON.parse(localStorage.getItem("burger")) || {};
-let hoje = new Date().toLocaleDateString("pt-BR");
+let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
 
-function baseDia() {
-  if (!dados[hoje]) {
-    dados[hoje] = { pedidos:[], Pix:0, Cartao:0, Dinheiro:0, Total:0 };
+function salvar() {
+  localStorage.setItem("pedidos", JSON.stringify(pedidos));
+}
+
+function add() {
+  if (!cliente.value || !pedido.value || !valor.value) {
+    alert("Preencha tudo");
+    return;
   }
-}
-baseDia();
 
-function salvar(){ localStorage.setItem("burger",JSON.stringify(dados)); }
+  pedidos.push({
+    cliente: cliente.value,
+    pedido: pedido.value,
+    pagamento: pagamento.value,
+    valor: valor.value
+  });
 
-function show(id){
-  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  if(id==="historico") renderHistorico();
-}
-
-function addPedido(){
-  if(!cliente.value || !pedido.value || !valor.value) return alert("Preencha tudo");
-  let h=new Date();
-  let p={
-    cliente:cliente.value,
-    pedido:pedido.value,
-    tipo:tipo.value,
-    pagamento:pagamento.value,
-    valor:Number(valor.value),
-    status:"Em preparo",
-    hora:h.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})
-  };
-  dados[hoje].pedidos.push(p);
-  dados[hoje][p.pagamento]+=p.valor;
-  dados[hoje].Total+=p.valor;
-  salvar(); render();
+  salvar();
+  render();
 }
 
-function mudarStatus(i){
-  let s=dados[hoje].pedidos[i];
-  if(s.status==="Em preparo") s.status="Pronto";
-  else if(s.status==="Pronto") s.status="Saiu para entrega";
-  else if(s.status==="Saiu para entrega") s.status="Entregue";
-  salvar(); render();
-}
-
-function excluir(i){
-  let p=dados[hoje].pedidos[i];
-  dados[hoje][p.pagamento]-=p.valor;
-  dados[hoje].Total-=p.valor;
-  dados[hoje].pedidos.splice(i,1);
-  salvar(); render();
-}
-
-function render(){
-  listaPedidos.innerHTML="";
-  listaEntregas.innerHTML="";
-  dados[hoje].pedidos.forEach((p,i)=>{
-    if(p.status==="Entregue") return;
-    let c=document.createElement("div");
-    c.className="card "+(p.status==="Em preparo"?"preparo":p.status==="Pronto"?"pronto":"entrega");
-    c.innerHTML=`
-      <b>${p.cliente}</b> (${p.hora})<br>
-      ${p.pedido}<br>R$ ${p.valor}<br>Status: ${p.status}
-      <button class="btn" onclick="mudarStatus(${i})">Status</button>
-      <button class="btn" onclick="excluir(${i})">Excluir</button>
+function render() {
+  lista.innerHTML = "";
+  pedidos.forEach(p => {
+    lista.innerHTML += `
+      <div class="card">
+        <b>${p.cliente}</b><br>
+        ${p.pedido}<br>
+        ${p.pagamento} – R$ ${p.valor}
+      </div>
     `;
-    listaPedidos.appendChild(c);
-    if(p.status==="Saiu para entrega") listaEntregas.appendChild(c.cloneNode(true));
   });
-
-  financeiroDia.innerHTML=`
-    Pix: R$ ${dados[hoje].Pix}<br>
-    Cartão: R$ ${dados[hoje].Cartao}<br>
-    Dinheiro: R$ ${dados[hoje].Dinheiro}<hr>
-    <b>Total: R$ ${dados[hoje].Total}</b>
-  `;
-}
-
-function novoDia(){
-  hoje=new Date().toLocaleDateString("pt-BR");
-  baseDia(); salvar(); render();
-}
-
-function renderHistorico(){
-  listaDias.innerHTML="";
-  detalheDia.innerHTML="";
-  Object.keys(dados).forEach(d=>{
-    let b=document.createElement("button");
-    b.className="btn";
-    b.innerText=d;
-    b.onclick=()=>mostrarDia(d);
-    listaDias.appendChild(b);
-  });
-}
-
-function mostrarDia(d){
-  let dia=dados[d];
-  detalheDia.innerHTML=`<h3>${d}</h3>`;
-  dia.pedidos.forEach(p=>{
-    detalheDia.innerHTML+=`${p.hora} - ${p.cliente} - ${p.pedido} - R$ ${p.valor}<br>`;
-  });
-  detalheDia.innerHTML+=`<hr>Total: R$ ${dia.Total}`;
 }
 
 render();
