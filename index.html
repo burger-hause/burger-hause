@@ -2,66 +2,130 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Burger Hause - TESTE</title>
+<title>Burger Hause Artesanal</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body { font-family: Arial; background:#111; color:#fff; margin:0; padding:20px }
+h2 { margin-top:0 }
 input, select, button { width:100%; padding:10px; margin:5px 0 }
-.card { background:#fff; color:#000; padding:10px; margin:5px 0 }
+button { background:#b30000; color:#fff; border:none; border-radius:5px }
+button:hover { background:#ff0000 }
+.card { background:#fff; color:#000; padding:10px; margin:8px 0; border-radius:5px }
+hr { border:1px dashed #000 }
 </style>
 </head>
 
 <body>
 
-<h2>Burger Hause – Teste Funcionando</h2>
+<h2>Burger Hause – Pedidos</h2>
+
+<button onclick="novoDia()">🗓️ Novo Dia</button>
 
 <input id="cliente" placeholder="Cliente">
 <input id="pedido" placeholder="Pedido">
+
+<select id="tipo" onchange="mostrarEndereco()">
+  <option value="Local">Local</option>
+  <option value="Entrega">Entrega</option>
+</select>
+
+<input id="endereco" placeholder="Endereço de entrega" style="display:none">
+
 <select id="pagamento">
   <option>Pix</option>
   <option>Cartao</option>
   <option>Dinheiro</option>
 </select>
+
 <input id="valor" type="number" placeholder="Valor">
 
 <button onclick="add()">Adicionar Pedido</button>
 
-<h3>Pedidos</h3>
+<h3>Pedidos do dia</h3>
 <div id="lista"></div>
 
 <script>
-let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
+let dados = JSON.parse(localStorage.getItem("burger")) || {};
+let hoje = new Date().toLocaleDateString("pt-BR");
+
+function baseDia() {
+  if (!dados[hoje]) dados[hoje] = { pedidos: [] };
+}
+baseDia();
 
 function salvar() {
-  localStorage.setItem("pedidos", JSON.stringify(pedidos));
+  localStorage.setItem("burger", JSON.stringify(dados));
+}
+
+function mostrarEndereco() {
+  endereco.style.display = tipo.value === "Entrega" ? "block" : "none";
 }
 
 function add() {
   if (!cliente.value || !pedido.value || !valor.value) {
-    alert("Preencha tudo");
+    alert("Preencha cliente, pedido e valor");
     return;
   }
 
-  pedidos.push({
+  let agora = new Date();
+
+  let p = {
     cliente: cliente.value,
     pedido: pedido.value,
+    tipo: tipo.value,
+    endereco: tipo.value === "Entrega" ? endereco.value : "",
     pagamento: pagamento.value,
-    valor: valor.value
-  });
+    valor: Number(valor.value),
+    data: hoje,
+    hora: agora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})
+  };
 
+  dados[hoje].pedidos.push(p);
+  salvar();
+  render();
+
+  cliente.value = pedido.value = endereco.value = valor.value = "";
+}
+
+function novoDia() {
+  hoje = new Date().toLocaleDateString("pt-BR");
+  baseDia();
   salvar();
   render();
 }
 
+function imprimir(p) {
+  let w = window.open("", "", "width=300");
+  w.document.write(`
+    <body style="font-family:monospace;width:80mm">
+      <h3 style="text-align:center">BURGER HAUSE ARTESANAL</h3>
+      <hr>
+      Data: ${p.data}<br>
+      Hora: ${p.hora}<br>
+      Cliente: ${p.cliente}<br>
+      Tipo: ${p.tipo}<br>
+      ${p.endereco ? "Endereço: "+p.endereco+"<br>" : ""}
+      Pagamento: ${p.pagamento}
+      <hr>
+      Pedido:<br>${p.pedido}
+      <hr>
+      <b>Total: R$ ${p.valor.toFixed(2)}</b>
+      <script>window.print();window.close()</script>
+    </body>
+  `);
+}
+
 function render() {
   lista.innerHTML = "";
-  pedidos.forEach(p => {
+  dados[hoje].pedidos.forEach(p => {
     lista.innerHTML += `
       <div class="card">
-        <b>${p.cliente}</b><br>
+        <b>${p.cliente}</b> (${p.hora})<br>
         ${p.pedido}<br>
-        ${p.pagamento} – R$ ${p.valor}
+        ${p.tipo}${p.endereco ? " – "+p.endereco : ""}<br>
+        ${p.pagamento} – R$ ${p.valor}<br><br>
+        <button onclick='imprimir(${JSON.stringify(p)})'>Imprimir</button>
       </div>
     `;
   });
