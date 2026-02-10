@@ -37,6 +37,16 @@ display:flex;
 flex-direction:column;
 gap:6px;
 }
+
+.item-produto{
+background:#eee;
+padding:5px;
+border-radius:4px;
+margin-bottom:4px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
 </style>
 </head>
 
@@ -63,10 +73,16 @@ gap:6px;
 <option>Entrega</option>
 </select>
 
-<input id="endereco" placeholder="Endereço" style="display:none">
+<input id="endereco" placeholder="Endereço completo" style="display:none">
 
-<textarea id="descricao" placeholder="Descrição"></textarea>
-<input id="valor" type="number" placeholder="Valor">
+<input id="buscaProduto" placeholder="Buscar produto" oninput="buscarProduto()">
+<select id="listaBusca"></select>
+<button onclick="addProduto()">Adicionar Produto</button>
+
+<div id="carrinho"></div>
+
+<textarea id="descricao" placeholder="Descrição do pedido"></textarea>
+<input id="valor" readonly placeholder="Valor total">
 
 <select id="pagamento">
 <option>Pix</option>
@@ -101,9 +117,9 @@ gap:6px;
 <!-- PRODUTOS -->
 <div id="produtos" class="section">
 <h2>Produtos</h2>
-<input id="nomeProd" placeholder="Nome">
+<input id="nomeProd" placeholder="Nome do produto">
 <input id="valorProd" type="number" placeholder="Valor">
-<button onclick="addProd()">Adicionar</button>
+<button onclick="addProd()">Adicionar Produto</button>
 <hr>
 <div id="listaProdutos"></div>
 </div>
@@ -111,8 +127,9 @@ gap:6px;
 </main>
 
 <script>
-let pedidos = JSON.parse(localStorage.getItem("pedidos")) || []
 let produtos = JSON.parse(localStorage.getItem("produtos")) || []
+let pedidos = JSON.parse(localStorage.getItem("pedidos")) || []
+let carrinho = []
 let numPedido = localStorage.getItem("numPedido") || 1
 let editIndex = null
 
@@ -141,18 +158,57 @@ listaProdutos.innerHTML+=`
 })
 }
 
+/* BUSCA / CARRINHO */
+function buscarProduto(){
+listaBusca.innerHTML=""
+produtos
+.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
+.forEach((p,i)=>listaBusca.innerHTML+=`<option value="${i}">${p.nome}</option>`)
+}
+
+function addProduto(){
+let p=produtos[listaBusca.value]
+if(!p)return
+let item=carrinho.find(i=>i.nome===p.nome)
+item ? item.qtd++ : carrinho.push({nome:p.nome,valor:p.valor,qtd:1})
+renderCarrinho()
+}
+
+function renderCarrinho(){
+carrinhoDiv=carrinho
+let total=0,desc=[]
+carrinho.innerHTML=""
+document.getElementById("carrinho").innerHTML=""
+carrinho.forEach((p,i)=>{
+total+=p.valor*p.qtd
+desc.push(`${p.qtd}x ${p.nome}`)
+document.getElementById("carrinho").innerHTML+=`
+<div class="item-produto">
+${p.qtd}x ${p.nome}
+<div>
+<button onclick="p.qtd++;renderCarrinho()">+</button>
+<button onclick="p.qtd--;if(p.qtd==0)carrinho.splice(${i},1);renderCarrinho()">-</button>
+</div>
+</div>`
+})
+descricao.value=desc.join(", ")
+valor.value=total.toFixed(2)
+}
+
 /* PEDIDOS */
 function salvarPedido(){
 if(!cliente.value||!valor.value)return
 
 if(editIndex!==null){
 let p=pedidos[editIndex]
-p.cliente=cliente.value
-p.tipo=tipo.value
-p.endereco=endereco.value
-p.descricao=descricao.value
-p.valor=+valor.value
-p.pagamento=pagamento.value
+Object.assign(p,{
+cliente:cliente.value,
+tipo:tipo.value,
+endereco:endereco.value,
+descricao:descricao.value,
+valor:+valor.value,
+pagamento:pagamento.value
+})
 editIndex=null
 btnSalvar.innerText="Salvar Pedido"
 }else{
@@ -171,6 +227,8 @@ localStorage.setItem("numPedido",numPedido)
 }
 
 cliente.value="";descricao.value="";valor.value="";endereco.value=""
+carrinho=[]
+document.getElementById("carrinho").innerHTML=""
 save();render()
 }
 
@@ -273,8 +331,8 @@ Dinheiro: R$ ${t.Dinheiro.toFixed(2)}<br>
 }
 
 function save(){
-localStorage.setItem("pedidos",JSON.stringify(pedidos))
 localStorage.setItem("produtos",JSON.stringify(produtos))
+localStorage.setItem("pedidos",JSON.stringify(pedidos))
 }
 
 render()
