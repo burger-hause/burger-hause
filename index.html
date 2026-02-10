@@ -15,7 +15,6 @@ section{flex:1;padding:10px;overflow:auto}
 table{width:100%;border-collapse:collapse;margin-top:10px}
 th,td{border:1px solid #ccc;padding:5px}
 input,select,button{padding:6px;margin:3px}
-#listaClientesBusca button{display:block;width:100%;text-align:left}
 </style>
 </head>
 
@@ -29,72 +28,15 @@ input,select,button{padding:6px;margin:3px}
 <main>
 <nav>
 <button onclick="show('pedidos')">Pedidos</button>
-<button onclick="show('entregas')">Entregas</button>
-<button onclick="show('financeiro')">Financeiro</button>
-<button onclick="show('historico')">Histórico</button>
+<button onclick="entregas()">Entregas</button>
 <button onclick="show('produtos')">Produtos</button>
 <button onclick="show('clientes')">Clientes</button>
 </nav>
 
 <!-- PEDIDOS -->
 <section id="pedidos">
-<h2>Novo / Editar Pedido</h2>
-
-<input type="hidden" id="pedidoEditando">
-
-Cliente:<br>
-<input id="buscaCliente" placeholder="Buscar cliente" oninput="buscarCliente()">
-<div id="listaClientesBusca"></div>
-
-<div id="dadosCliente" style="font-size:14px;margin:5px 0"></div>
-
-Tipo:
-<select id="tipo" onchange="toggleEndereco()">
-<option>Local</option>
-<option>Entrega</option>
-</select><br>
-
-Endereço:
-<input id="endereco"><br>
-
-Pagamento:
-<select id="pagamento">
-<option>Pix</option>
-<option>Cartão</option>
-<option>Dinheiro</option>
-</select><br>
-
-Produto:
-<input id="buscaProduto" placeholder="Buscar produto" oninput="buscarProduto()">
-<div id="listaBusca"></div>
-
-<h4>Itens</h4>
-<ul id="itens"></ul>
-
-<b>Total: R$ <span id="total">0.00</span></b><br>
-
-<button onclick="salvarPedido()">Salvar Pedido</button>
-
 <h2>Pedidos</h2>
 <table id="listaPedidos"></table>
-</section>
-
-<!-- ENTREGAS -->
-<section id="entregas" class="hidden">
-<h2>Entregas</h2>
-<table id="listaEntregas"></table>
-</section>
-
-<!-- FINANCEIRO -->
-<section id="financeiro" class="hidden">
-<h2>Financeiro</h2>
-<div id="financeiroDados"></div>
-</section>
-
-<!-- HISTÓRICO -->
-<section id="historico" class="hidden">
-<h2>Histórico</h2>
-<table id="listaHistorico"></table>
 </section>
 
 <!-- PRODUTOS -->
@@ -122,8 +64,6 @@ Produto:
 let pedidos = JSON.parse(localStorage.getItem("pedidos")||"[]");
 let produtos = JSON.parse(localStorage.getItem("produtos")||"[]");
 let clientes = JSON.parse(localStorage.getItem("clientes")||"[]");
-let itensPedido=[];
-let clienteSelecionado=null;
 
 function show(id){
 document.querySelectorAll("section").forEach(s=>s.classList.add("hidden"));
@@ -131,127 +71,80 @@ document.getElementById(id).classList.remove("hidden");
 render();
 }
 
-function toggleEndereco(){
-endereco.style.display = tipo.value=="Entrega"?"block":"none";
+/* 🔥 STATUS CORRIGIDO AQUI */
+function alterarStatus(id, novoStatus){
+  let pedido = pedidos.find(p => p.id === id);
+  if(pedido){
+    pedido.status = novoStatus;
+    localStorage.setItem("pedidos", JSON.stringify(pedidos));
+    render();
+  }
 }
 
-/* CLIENTE BUSCA */
-function buscarCliente(){
-let v=buscaCliente.value.toLowerCase();
-listaClientesBusca.innerHTML="";
-clientes.filter(c=>c.nome.toLowerCase().includes(v)).forEach(c=>{
-let b=document.createElement("button");
-b.textContent=c.nome;
-b.onclick=()=>selecionarCliente(c);
-listaClientesBusca.appendChild(b);
-});
-}
-
-function selecionarCliente(c){
-clienteSelecionado=c;
-buscaCliente.value=c.nome;
-listaClientesBusca.innerHTML="";
-dadosCliente.innerHTML=`
-<b>Nome:</b> ${c.nome}<br>
-<b>Telefone:</b> ${c.tel}<br>
-<b>Endereço:</b> ${c.end}
+function renderPedidos(){
+let t = document.getElementById("listaPedidos");
+t.innerHTML = `
+<tr>
+<th>ID</th>
+<th>Cliente</th>
+<th>Status</th>
+</tr>
 `;
-endereco.value=c.end;
+
+pedidos.forEach(p=>{
+t.innerHTML += `
+<tr>
+<td>${p.id}</td>
+<td>${p.cliente || ""}</td>
+<td>
+<select onchange="alterarStatus(${p.id}, this.value)">
+<option ${p.status==="Em preparo"?"selected":""}>Em preparo</option>
+<option ${p.status==="Pronto"?"selected":""}>Pronto</option>
+<option ${p.status==="Finalizado"?"selected":""}>Finalizado</option>
+<option ${p.status==="Entregue"?"selected":""}>Entregue</option>
+</select>
+</td>
+</tr>
+`;
+});
 }
 
 /* PRODUTOS */
-function buscarProduto(){
-listaBusca.innerHTML="";
-let v=buscaProduto.value.toLowerCase();
-produtos.filter(p=>p.nome.toLowerCase().includes(v)).forEach(p=>{
-let b=document.createElement("button");
-b.textContent=`${p.nome} R$${p.valor}`;
-b.onclick=()=>addItem(p);
-listaBusca.appendChild(b);
-});
-}
-
-function addItem(p){
-let i=itensPedido.find(x=>x.id==p.id);
-if(i)i.qtd++; else itensPedido.push({...p,qtd:1});
-renderItens();
-}
-
-function renderItens(){
-itens.innerHTML="";
-let t=0;
-itensPedido.forEach(i=>{
-t+=i.valor*i.qtd;
-itens.innerHTML+=`<li>${i.qtd}x ${i.nome}</li>`;
-});
-total.textContent=t.toFixed(2);
-}
-
-/* PEDIDOS */
-function salvarPedido(){
-let id=pedidoEditando.value||Date.now();
-pedidos=pedidos.filter(p=>p.id!=id);
-
-pedidos.push({
-id,
-cliente:clienteSelecionado?clienteSelecionado.nome:"",
-telefone:clienteSelecionado?clienteSelecionado.tel:"",
-endereco:clienteSelecionado?clienteSelecionado.end:endereco.value,
-tipo:tipo.value,
-pagamento:pagamento.value,
-itens:[...itensPedido],
-valor:+total.textContent,
-status:"Em preparo",
-data:new Date().toISOString()
-});
-
-localStorage.setItem("pedidos",JSON.stringify(pedidos));
-itensPedido=[];
-pedidoEditando.value="";
-clienteSelecionado=null;
-dadosCliente.innerHTML="";
-buscaCliente.value="";
+function addProduto(){
+produtos.push({id:Date.now(),nome:nomeProd.value,valor:+valorProd.value});
+localStorage.setItem("produtos",JSON.stringify(produtos));
+nomeProd.value=valorProd.value="";
 render();
 }
 
-/* RENDER */
-function renderPedidos(){
-listaPedidos.innerHTML="<tr><th>ID</th><th>Cliente</th><th>Status</th><th>Ações</th></tr>";
-pedidos.forEach(p=>{
-listaPedidos.innerHTML+=`
-<tr>
-<td>${p.id}</td>
-<td>${p.cliente}</td>
-<td>
-<select onchange="p.status=this.value;localStorage.setItem('pedidos',JSON.stringify(pedidos));render()">
-<option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
-<option ${p.status=="Pronto"?"selected":""}>Pronto</option>
-<option ${p.status=="Finalizado"?"selected":""}>Finalizado</option>
-<option ${p.status=="Entregue"?"selected":""}>Entregue</option>
-</select>
-</td>
-<td>
-<button onclick="editarPedido(${p.id})">✏️</button>
-</td>
-</tr>`;
+function renderProdutos(){
+let t=document.getElementById("listaProdutos");
+t.innerHTML="<tr><th>Nome</th><th>Valor</th></tr>";
+produtos.forEach(p=>{
+t.innerHTML+=`<tr><td>${p.nome}</td><td>${p.valor}</td></tr>`;
 });
 }
 
-function editarPedido(id){
-let p=pedidos.find(x=>x.id==id);
-pedidoEditando.value=p.id;
-buscaCliente.value=p.cliente;
-dadosCliente.innerHTML=`<b>Endereço:</b> ${p.endereco}`;
-endereco.value=p.endereco;
-tipo.value=p.tipo;
-pagamento.value=p.pagamento;
-itensPedido=[...p.itens];
-renderItens();
-show("pedidos");
+/* CLIENTES */
+function addCliente(){
+clientes.push({id:Date.now(),nome:nomeCli.value,tel:telCli.value,end:endCli.value});
+localStorage.setItem("clientes",JSON.stringify(clientes));
+nomeCli.value=telCli.value=endCli.value="";
+render();
+}
+
+function renderClientes(){
+let t=document.getElementById("listaClientes");
+t.innerHTML="<tr><th>Nome</th><th>Telefone</th><th>Endereço</th></tr>";
+clientes.forEach(c=>{
+t.innerHTML+=`<tr><td>${c.nome}</td><td>${c.tel}</td><td>${c.end}</td></tr>`;
+});
 }
 
 function render(){
 renderPedidos();
+renderProdutos();
+renderClientes();
 }
 
 render();
