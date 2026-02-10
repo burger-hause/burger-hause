@@ -34,6 +34,7 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:bord
 
 <nav>
     <button onclick="abrirAba('pedidos')">Pedidos</button>
+    <button onclick="abrirAba('produtos')">Produtos</button>
     <button onclick="abrirAba('entregas')">Entregas</button>
     <button onclick="abrirAba('financeiro')">Financeiro</button>
 </nav>
@@ -43,18 +44,11 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:bord
 <!-- PEDIDOS -->
 <div id="pedidos" class="section active">
 
-<h3>Cadastrar Produto</h3>
-<input id="nomeProduto" placeholder="Nome do produto">
-<input id="valorProduto" type="number" placeholder="Valor">
-<button onclick="adicionarProduto()">Adicionar Produto</button>
-
-<hr>
-
 <h3>Novo Pedido</h3>
 
 <input id="cliente" placeholder="Nome do cliente">
 
-<div id="listaProdutos"></div>
+<div id="listaProdutosPedido"></div>
 
 <textarea id="descricao" placeholder="Descrição do pedido"></textarea>
 
@@ -79,6 +73,20 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:bord
 <div id="listaPedidos"></div>
 </div>
 
+<!-- PRODUTOS -->
+<div id="produtos" class="section">
+
+<h3>Cadastrar Produto</h3>
+<input id="nomeProduto" placeholder="Nome do produto">
+<input id="valorProduto" type="number" placeholder="Valor">
+<button onclick="adicionarProduto()">Adicionar Produto</button>
+
+<hr>
+<h3>Produtos Cadastrados</h3>
+<div id="listaProdutosCadastro"></div>
+
+</div>
+
 <!-- ENTREGAS -->
 <div id="entregas" class="section">
 <h3>Pedidos para Entrega</h3>
@@ -88,12 +96,10 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:bord
 <!-- FINANCEIRO -->
 <div id="financeiro" class="section">
 <h3>Financeiro</h3>
-
 <button onclick="setFiltro('dia')">Hoje</button>
 <button onclick="setFiltro('semana')">Semana</button>
 <button onclick="setFiltro('mes')">Mês</button>
 <button onclick="setFiltro('tudo')">Histórico</button>
-
 <div id="financeiroDados"></div>
 </div>
 
@@ -121,30 +127,43 @@ function mostrarEndereco(){
     endereco.style.display = tipo.value==="Entrega"?"block":"none";
 }
 
+/* PRODUTOS */
 function adicionarProduto(){
-    if(!nomeProduto.value||!valorProduto.value) return alert("Preencha o produto");
+    if(!nomeProduto.value||!valorProduto.value) return alert("Preencha tudo");
     produtos.push({nome:nomeProduto.value,valor:parseFloat(valorProduto.value)});
-    nomeProduto.value="";
-    valorProduto.value="";
-    salvar();
-    renderizarProdutos();
+    nomeProduto.value="";valorProduto.value="";
+    salvar();renderizar();
+}
+
+function removerProduto(i){
+    if(confirm("Remover produto?")){
+        produtos.splice(i,1);
+        salvar();renderizar();
+    }
 }
 
 function renderizarProdutos(){
-    listaProdutos.innerHTML="<strong>Produtos:</strong>";
+    listaProdutosPedido.innerHTML="<strong>Selecione os produtos:</strong>";
+    listaProdutosCadastro.innerHTML="";
+
     produtos.forEach((p,i)=>{
-        listaProdutos.innerHTML+=`
-        <label class="produto-item">
+        listaProdutosPedido.innerHTML+=`
+        <label>
             <input type="checkbox" onchange="calcularPedido()">
             ${p.nome} - R$ ${p.valor.toFixed(2)}
-        </label>`;
+        </label><br>`;
+
+        listaProdutosCadastro.innerHTML+=`
+        <div class="produto-item">
+            ${p.nome} - R$ ${p.valor.toFixed(2)}
+            <button onclick="removerProduto(${i})">Excluir</button>
+        </div>`;
     });
 }
 
 function calcularPedido(){
-    let total=0;
-    let desc=[];
-    document.querySelectorAll("#listaProdutos input").forEach((c,i)=>{
+    let total=0, desc=[];
+    document.querySelectorAll("#listaProdutosPedido input").forEach((c,i)=>{
         if(c.checked){
             total+=produtos[i].valor;
             desc.push(produtos[i].nome);
@@ -154,10 +173,10 @@ function calcularPedido(){
     valor.value=total.toFixed(2);
 }
 
+/* PEDIDOS */
 function adicionarPedido(){
     if(!cliente.value||!descricao.value||!valor.value) return alert("Preencha tudo");
-    const agora=new Date();
-    ultimoNumero++;
+    const agora=new Date();ultimoNumero++;
 
     pedidos.push({
         numero:ultimoNumero,
@@ -174,12 +193,12 @@ function adicionarPedido(){
 
     salvar();
     cliente.value="";descricao.value="";valor.value="";endereco.value="";
-    document.querySelectorAll("#listaProdutos input").forEach(c=>c.checked=false);
+    document.querySelectorAll("#listaProdutosPedido input").forEach(c=>c.checked=false);
     renderizar();
 }
 
 function alterarStatus(i,s){pedidos[i].status=s;salvar();renderizar();}
-function excluirPedido(i){if(confirm("Excluir?")){pedidos.splice(i,1);salvar();renderizar();}}
+function excluirPedido(i){if(confirm("Excluir pedido?")){pedidos.splice(i,1);salvar();renderizar();}}
 
 function imprimirPedido(p){
     const w=window.open("","","width=300,height=600");
@@ -198,10 +217,10 @@ Data: ${p.data} ${p.hora}
     w.document.close();w.print();
 }
 
+/* FINANCEIRO */
 function setFiltro(f){filtroFinanceiro=f;renderizar();}
-
 function mesmaSemana(d){
-    const h=new Date();const x=new Date(d);
+    const h=new Date(),x=new Date(d);
     const i=new Date(h);i.setDate(h.getDate()-h.getDay());
     const f=new Date(i);f.setDate(i.getDate()+6);
     return x>=i&&x<=f;
@@ -209,9 +228,9 @@ function mesmaSemana(d){
 
 function renderizar(){
     renderizarProdutos();
+
     listaPedidos.innerHTML="";
     let porData={};
-
     pedidos.forEach((p,i)=>{
         if(!porData[p.data]) porData[p.data]=[];
         porData[p.data].push({...p,index:i});
