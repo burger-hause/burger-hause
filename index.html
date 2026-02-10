@@ -9,21 +9,25 @@ body{margin:0;font-family:Arial;background:#f2f2f2;}
 header{background:#222;color:#fff;text-align:center;padding:10px;}
 header img{max-width:120px;display:block;margin:0 auto 5px;}
 nav{display:flex;background:#333;}
-nav button{flex:1;padding:12px;border:none;background:none;color:#fff;color:#fff;cursor:pointer;}
+nav button{flex:1;padding:12px;border:none;background:none;color:#fff;cursor:pointer;}
 nav button:hover{background:#444;}
 .container{padding:15px;}
 .section{display:none;}
 .section.active{display:block;}
 input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:border-box;}
 
-.pedido{background:#fff;padding:10px;border-radius:5px;margin-bottom:8px;display:flex;}
-.pedido-info{flex:1;font-size:14px;}
-.pedido-actions{width:120px;display:flex;flex-direction:column;gap:6px;border-left:1px solid #ddd;padding-left:8px;}
+.item-produto{
+  background:#eee;
+  padding:6px;
+  border-radius:4px;
+  margin-bottom:5px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:14px;
+}
+.item-produto button{width:auto;padding:2px 6px;}
 
-.item-produto{display:flex;justify-content:space-between;align-items:center;background:#eee;padding:5px;border-radius:4px;margin-bottom:4px;font-size:14px;}
-.item-produto button{width:auto;padding:3px 6px;}
-
-.data-titulo{background:#ddd;padding:5px;margin-top:15px;font-weight:bold;}
 </style>
 </head>
 
@@ -37,8 +41,6 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:bord
 <nav>
 <button onclick="abrirAba('pedidos')">Pedidos</button>
 <button onclick="abrirAba('produtos')">Produtos</button>
-<button onclick="abrirAba('entregas')">Entregas</button>
-<button onclick="abrirAba('financeiro')">Financeiro</button>
 </nav>
 
 <div class="container">
@@ -49,33 +51,16 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:bord
 
 <input id="cliente" placeholder="Nome do cliente">
 
-<input id="buscaProduto" placeholder="Pesquisar produto" oninput="filtrarProdutos()">
-<select id="resultadoBusca"></select>
+<input id="buscaProduto" placeholder="Pesquisar produto" oninput="buscarProdutos()">
+<select id="listaBusca"></select>
 <button onclick="adicionarProdutoPedido()">Adicionar Produto</button>
 
-<div id="produtosSelecionados"></div>
+<div id="listaCarrinho"></div>
 
 <textarea id="descricao" placeholder="Descrição do pedido"></textarea>
-
-<select id="tipo" onchange="endereco.style.display=this.value==='Entrega'?'block':'none'">
-<option>Local</option>
-<option>Entrega</option>
-</select>
-
-<textarea id="endereco" placeholder="Endereço" style="display:none;"></textarea>
-
-<select id="pagamento">
-<option>Pix</option>
-<option>Cartão</option>
-<option>Dinheiro</option>
-</select>
-
 <input id="valor" type="number" placeholder="Valor total">
 
-<button onclick="adicionarPedido()">Adicionar Pedido</button>
-
-<hr>
-<div id="listaPedidos"></div>
+<button onclick="salvarPedido()">Salvar Pedido</button>
 </div>
 
 <!-- PRODUTOS -->
@@ -83,75 +68,57 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:bord
 <h3>Cadastrar Produto</h3>
 <input id="nomeProduto" placeholder="Nome do produto">
 <input id="valorProduto" type="number" placeholder="Valor">
-<button onclick="adicionarProduto()">Adicionar Produto</button>
+<button onclick="adicionarProduto()">Adicionar</button>
 <hr>
 <div id="listaProdutos"></div>
-</div>
-
-<!-- ENTREGAS -->
-<div id="entregas" class="section">
-<h3>Entregas</h3>
-<div id="listaEntregas"></div>
-</div>
-
-<!-- FINANCEIRO -->
-<div id="financeiro" class="section">
-<h3>Financeiro</h3>
-<button onclick="filtro='dia';renderizar()">Hoje</button>
-<button onclick="filtro='semana';renderizar()">Semana</button>
-<button onclick="filtro='mes';renderizar()">Mês</button>
-<button onclick="filtro='tudo';renderizar()">Tudo</button>
-<div id="financeiroDados"></div>
 </div>
 
 </div>
 
 <script>
-let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
 let produtos = JSON.parse(localStorage.getItem("produtos")) || [];
-let ultimo = +localStorage.getItem("ultimo") || 0;
-let filtro = "dia";
+let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
 let carrinho = [];
-
-function salvar(){
-localStorage.setItem("pedidos",JSON.stringify(pedidos));
-localStorage.setItem("produtos",JSON.stringify(produtos));
-localStorage.setItem("ultimo",ultimo);
-}
 
 function abrirAba(id){
 document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
 document.getElementById(id).classList.add("active");
-renderizar();
+renderizarProdutos();
 }
 
 /* PRODUTOS */
 function adicionarProduto(){
-if(!nomeProduto.value||!valorProduto.value)return;
+if(!nomeProduto.value || !valorProduto.value) return;
 produtos.push({nome:nomeProduto.value,valor:+valorProduto.value});
 nomeProduto.value="";valorProduto.value="";
-salvar();renderizar();
+salvar();renderizarProdutos();
 }
-function removerProduto(i){
-produtos.splice(i,1);salvar();renderizar();
+
+function renderizarProdutos(){
+listaProdutos.innerHTML="";
+produtos.forEach((p,i)=>{
+listaProdutos.innerHTML+=`${p.nome} - R$ ${p.valor.toFixed(2)}
+<button onclick="produtos.splice(${i},1);salvar();renderizarProdutos()">Excluir</button><br>`;
+});
 }
 
 /* BUSCA */
-function filtrarProdutos(){
-resultadoBusca.innerHTML="";
-produtos.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
+function buscarProdutos(){
+listaBusca.innerHTML="";
+produtos
+.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
 .forEach((p,i)=>{
-resultadoBusca.innerHTML+=`<option value="${i}">${p.nome} - R$ ${p.valor.toFixed(2)}</option>`;
+listaBusca.innerHTML+=`<option value="${i}">${p.nome} - R$ ${p.valor.toFixed(2)}</option>`;
 });
 }
 
 function adicionarProdutoPedido(){
-let i = resultadoBusca.value;
+let i = listaBusca.value;
 if(i==="") return;
 
-let existente = carrinho.find(p=>p.nome===produtos[i].nome);
-if(existente){
-existente.qtd++;
+let item = carrinho.find(p=>p.nome===produtos[i].nome);
+if(item){
+item.qtd++;
 }else{
 carrinho.push({nome:produtos[i].nome,valor:produtos[i].valor,qtd:1});
 }
@@ -159,17 +126,17 @@ atualizarCarrinho();
 }
 
 function atualizarCarrinho(){
-let total=0;
-let desc=[];
-produtosSelecionados.innerHTML="";
+let total = 0;
+let desc = [];
+listaCarrinho.innerHTML="";
 
 carrinho.forEach((p,i)=>{
-total+=p.valor*p.qtd;
-desc.push(`${p.nome} x${p.qtd}`);
+total += p.valor * p.qtd;
+desc.push(`${p.qtd}x ${p.nome}`);
 
-produtosSelecionados.innerHTML+=`
+listaCarrinho.innerHTML += `
 <div class="item-produto">
-${p.nome} x${p.qtd} - R$ ${(p.valor*p.qtd).toFixed(2)}
+${p.qtd}x ${p.nome} - R$ ${(p.valor*p.qtd).toFixed(2)}
 <div>
 <button onclick="p.qtd++;atualizarCarrinho()">+</button>
 <button onclick="p.qtd--;if(p.qtd<=0)carrinho.splice(${i},1);atualizarCarrinho()">-</button>
@@ -177,43 +144,31 @@ ${p.nome} x${p.qtd} - R$ ${(p.valor*p.qtd).toFixed(2)}
 </div>`;
 });
 
-descricao.value=desc.join(", ");
-valor.value=total.toFixed(2);
+descricao.value = desc.join(", ");
+valor.value = total.toFixed(2);
 }
 
-/* PEDIDOS */
-function adicionarPedido(){
-if(!cliente.value||!descricao.value||!valor.value)return;
-ultimo++;
-let d=new Date();
-
+/* PEDIDO */
+function salvarPedido(){
+if(!cliente.value || carrinho.length===0) return alert("Pedido incompleto");
 pedidos.push({
-numero:ultimo,
 cliente:cliente.value,
 descricao:descricao.value,
-tipo:tipo.value,
-endereco:endereco.value,
-pagamento:pagamento.value,
 valor:+valor.value,
-data:d.toISOString().split("T")[0],
-hora:d.toLocaleTimeString(),
-status:"Em preparo"
+data:new Date().toLocaleString()
 });
-
-cliente.value="";descricao.value="";valor.value="";endereco.value="";
+cliente.value="";descricao.value="";valor.value="";
 carrinho=[];
-salvar();renderizar();
+salvar();
+alert("Pedido salvo");
 }
 
-/* RENDER */
-function renderizar(){
-listaProdutos.innerHTML="";
-produtos.forEach((p,i)=>{
-listaProdutos.innerHTML+=`${p.nome} - R$ ${p.valor.toFixed(2)} <button onclick="removerProduto(${i})">Excluir</button><br>`;
-});
+function salvar(){
+localStorage.setItem("produtos",JSON.stringify(produtos));
+localStorage.setItem("pedidos",JSON.stringify(pedidos));
 }
 
-renderizar();
+renderizarProdutos();
 </script>
 
 </body>
