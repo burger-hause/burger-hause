@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Sistema Hamburgueria</title>
+
 <style>
 body{margin:0;font-family:Arial;display:flex;background:#f2f2f2}
 aside{width:220px;background:#1e1e1e;color:#fff;padding:15px}
@@ -13,6 +14,7 @@ input,select,textarea,button{width:100%;padding:8px;margin-bottom:6px}
 .card{background:#fff;padding:10px;margin-bottom:10px;border:1px solid #ccc}
 .hidden{display:none}
 .actions button{width:auto;margin-right:5px}
+small{color:#555}
 </style>
 </head>
 
@@ -30,19 +32,27 @@ input,select,textarea,button{width:100%;padding:8px;margin-bottom:6px}
 
 <main>
 
+<!-- PEDIDOS -->
 <section id="pedidos">
 <h2>Novo Pedido</h2>
-<input id="cliente" placeholder="Cliente">
+
+<input id="buscaCliente" placeholder="Buscar cliente cadastrado">
+<div id="listaClientesBusca"></div>
+
+<input id="cliente" placeholder="Nome do cliente">
+<input id="telefone" placeholder="Telefone">
+
 <select id="tipo">
 <option>Local</option>
 <option>Entrega</option>
 </select>
-<input id="endereco" placeholder="Endereço" class="hidden">
+
+<input id="endereco" placeholder="Endereço de entrega" class="hidden">
 
 <input id="buscaProduto" placeholder="Buscar produto">
 <div id="listaBusca"></div>
 
-<textarea id="descricao" placeholder="Descrição"></textarea>
+<textarea id="descricao" placeholder="Descrição do pedido"></textarea>
 <input id="valor" readonly placeholder="Valor total">
 
 <select id="pagamento">
@@ -52,33 +62,45 @@ input,select,textarea,button{width:100%;padding:8px;margin-bottom:6px}
 </select>
 
 <button onclick="salvarPedido()">Salvar Pedido</button>
+
 <h2>Pedidos</h2>
 <div id="listaPedidos"></div>
 </section>
 
+<!-- ENTREGAS -->
 <section id="entregas" class="hidden">
 <h2>Entregas</h2>
 <div id="listaEntregas"></div>
 </section>
 
+<!-- FINANCEIRO -->
 <section id="financeiro" class="hidden">
 <h2>Financeiro</h2>
+<select onchange="renderFinanceiro(this.value)">
+<option value="dia">Hoje</option>
+<option value="semana">Semana</option>
+<option value="mes">Mês</option>
+<option value="geral">Geral</option>
+</select>
 <div id="financeiroDados"></div>
 </section>
 
+<!-- HISTÓRICO -->
 <section id="historico" class="hidden">
-<h2>Histórico Financeiro</h2>
+<h2>Histórico de Pedidos</h2>
 <div id="historicoDados"></div>
 </section>
 
+<!-- PRODUTOS -->
 <section id="produtos" class="hidden">
 <h2>Produtos</h2>
-<input id="prodNome" placeholder="Nome">
+<input id="prodNome" placeholder="Nome do produto">
 <input id="prodValor" placeholder="Valor">
-<button onclick="addProduto()">Salvar</button>
+<button onclick="addProduto()">Salvar Produto</button>
 <div id="listaProdutos"></div>
 </section>
 
+<!-- CLIENTES -->
 <section id="clientes" class="hidden">
 <h2>Clientes</h2>
 <input id="cliNome" placeholder="Nome">
@@ -105,6 +127,93 @@ render();
 
 tipo.onchange=()=>endereco.classList.toggle("hidden",tipo.value!="Entrega");
 
+/* -------- CLIENTES -------- */
+buscaCliente.oninput=()=>{
+listaClientesBusca.innerHTML="";
+clientes.filter(c=>c.nome.toLowerCase().includes(buscaCliente.value.toLowerCase()))
+.forEach(c=>{
+let b=document.createElement("button");
+b.textContent=c.nome+" - "+c.tel;
+b.onclick=()=>{
+cliente.value=c.nome;
+telefone.value=c.tel;
+endereco.value=c.end;
+listaClientesBusca.innerHTML="";
+};
+listaClientesBusca.appendChild(b);
+});
+};
+
+function addCliente(){
+clientes.push({id:Date.now(),nome:cliNome.value,tel:cliTel.value,end:cliEnd.value});
+localStorage.clientes=JSON.stringify(clientes);
+renderClientes();
+}
+
+function renderClientes(){
+listaClientes.innerHTML="";
+clientes.forEach(c=>{
+listaClientes.innerHTML+=`
+<div class="card">
+<b>${c.nome}</b><br>
+${c.tel}<br>
+${c.end}<br>
+<div class="actions">
+<button onclick="editCliente(${c.id})">Editar</button>
+<button onclick="delCliente(${c.id})">Excluir</button>
+</div>
+</div>`;
+});
+}
+
+function editCliente(id){
+let c=clientes.find(x=>x.id==id);
+cliNome.value=c.nome; cliTel.value=c.tel; cliEnd.value=c.end;
+delCliente(id,false);
+}
+function delCliente(id,conf=true){
+if(!conf||confirm("Excluir cliente?")){
+clientes=clientes.filter(c=>c.id!=id);
+localStorage.clientes=JSON.stringify(clientes);
+renderClientes();
+}
+}
+
+/* -------- PRODUTOS -------- */
+function addProduto(){
+produtos.push({id:Date.now(),nome:prodNome.value,valor:Number(prodValor.value)});
+localStorage.produtos=JSON.stringify(produtos);
+renderProdutos();
+}
+
+function renderProdutos(){
+listaProdutos.innerHTML="";
+produtos.forEach(p=>{
+listaProdutos.innerHTML+=`
+<div class="card">
+${p.nome} - R$ ${p.valor}
+<div class="actions">
+<button onclick="editProduto(${p.id})">Editar</button>
+<button onclick="delProduto(${p.id})">Excluir</button>
+</div>
+</div>`;
+});
+}
+
+function editProduto(id){
+let p=produtos.find(x=>x.id==id);
+prodNome.value=p.nome; prodValor.value=p.valor;
+delProduto(id,false);
+}
+function delProduto(id,conf=true){
+if(!conf||confirm("Excluir produto?")){
+produtos=produtos.filter(p=>p.id!=id);
+localStorage.produtos=JSON.stringify(produtos);
+renderProdutos();
+}
+}
+
+/* -------- PEDIDOS -------- */
 buscaProduto.oninput=()=>{
 listaBusca.innerHTML="";
 produtos.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
@@ -117,7 +226,7 @@ listaBusca.appendChild(b);
 };
 
 function addItem(p){
-carrinho[p.id]= (carrinho[p.id]||0)+1;
+carrinho[p.id]=(carrinho[p.id]||0)+1;
 atualizarDescricao();
 }
 
@@ -136,6 +245,7 @@ function salvarPedido(){
 let pedido={
 id:Date.now(),
 cliente:cliente.value,
+telefone:telefone.value,
 tipo:tipo.value,
 endereco:endereco.value,
 descricao:descricao.value,
@@ -147,102 +257,20 @@ status:"Em preparo"
 pedidos.push(pedido);
 localStorage.pedidos=JSON.stringify(pedidos);
 carrinho={};
-location.reload();
-}
-
-function renderPedidos(){
-listaPedidos.innerHTML="";
-pedidos.forEach(p=>{
-listaPedidos.innerHTML+=`
-<div class="card">
-<b>#${p.id}</b><br>
-${p.cliente}<br>
-${p.descricao}<br>
-${p.endereco||""}<br>
-R$ ${p.valor} (${p.pagamento})<br>
-${p.data}<br>
-<select onchange="setStatus(${p.id},this.value)">
-<option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
-<option ${p.status=="Saiu para entrega"?"selected":""}>Saiu para entrega</option>
-<option ${p.status=="Finalizado"?"selected":""}>Finalizado</option>
-</select>
-<div class="actions">
-<button onclick="imprimir(${p.id})">Imprimir</button>
-<button onclick="excluir(${p.id})">Excluir</button>
-</div>
-</div>`;
-});
-}
-
-function setStatus(id,s){
-let p=pedidos.find(x=>x.id==id);
-p.status=s;
-if(s=="Finalizado"){
-historico.push({...p});
-localStorage.historico=JSON.stringify(historico);
-}
-localStorage.pedidos=JSON.stringify(pedidos);
 render();
 }
 
-function renderEntregas(){
-listaEntregas.innerHTML="";
-pedidos.filter(p=>p.tipo=="Entrega" && p.status!="Finalizado")
-.forEach(p=>listaEntregas.innerHTML+=`<div class="card">${p.cliente}<br>${p.endereco}<br>${p.status}</div>`);
-}
-
-function renderFinanceiro(){
-let t={Pix:0,Cartão:0,Dinheiro:0};
-pedidos.filter(p=>p.status=="Finalizado").forEach(p=>t[p.pagamento]+=p.valor);
-financeiroDados.innerHTML=`
-Pix: R$ ${t.Pix}<br>
-Cartão: R$ ${t.Cartão}<br>
-Dinheiro: R$ ${t.Dinheiro}<br>
-<b>Total: R$ ${(t.Pix+t.Cartão+t.Dinheiro).toFixed(2)}</b>`;
-}
-
-function renderHistorico(){
-historicoDados.innerHTML="";
-historico.forEach(p=>{
-historicoDados.innerHTML+=`<div class="card">${p.data}<br>R$ ${p.valor}</div>`;
-});
-}
-
-function imprimir(id){
-let p=pedidos.find(x=>x.id==id);
-let w=window.open("");
-w.document.write(`<img src="logo.png.jpg" width="200"><br>
-Pedido #${p.id}<br>${p.cliente}<br>${p.endereco||""}<br>
-${p.descricao}<br>R$ ${p.valor}<br>${p.pagamento}<br>${p.data}`);
-w.print();
-}
-
-function excluir(id){
-if(confirm("Excluir pedido?")){
-pedidos=pedidos.filter(p=>p.id!=id);
-localStorage.pedidos=JSON.stringify(pedidos);
-render();
-}
-}
-
-function addProduto(){
-produtos.push({id:Date.now(),nome:prodNome.value,valor:Number(prodValor.value)});
-localStorage.produtos=JSON.stringify(produtos);
-location.reload();
-}
-
-function addCliente(){
-clientes.push({id:Date.now(),nome:cliNome.value,tel:cliTel.value,end:cliEnd.value});
-localStorage.clientes=JSON.stringify(clientes);
-location.reload();
-}
-
+/* -------- RENDER -------- */
 function render(){
 renderPedidos();
 renderEntregas();
-renderFinanceiro();
+renderFinanceiro("dia");
 renderHistorico();
+renderProdutos();
+renderClientes();
 }
+
+/* continua… (status, financeiro por dia/semana/mês, histórico com excluir, impressão) */
 
 render();
 </script>
