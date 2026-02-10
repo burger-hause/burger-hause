@@ -5,16 +5,17 @@
 <title>House Artesanal</title>
 
 <style>
-body{margin:0;font-family:Arial}
-header{background:#111;color:#fff;padding:10px;text-align:center}
-main{display:flex;height:calc(100vh - 60px)}
+body{margin:0;font-family:Arial;background:#f4f4f4}
+header{background:#111;color:#fff;padding:15px;text-align:center}
+main{display:flex;height:calc(100vh - 70px)}
 nav{width:220px;background:#222;color:#fff;padding:10px}
 nav button{width:100%;margin-bottom:5px;padding:10px;border:0;background:#444;color:#fff;cursor:pointer}
-section{flex:1;padding:10px;overflow:auto}
+section{flex:1;padding:15px;overflow:auto;background:#fff}
 .hidden{display:none}
 table{width:100%;border-collapse:collapse;margin-top:10px}
-th,td{border:1px solid #ccc;padding:6px}
-input,select,button{padding:6px;margin:4px}
+th,td{border:1px solid #ccc;padding:6px;text-align:left}
+input,select,button{padding:7px;margin:4px;width:100%}
+button{cursor:pointer}
 .status{font-weight:bold}
 </style>
 </head>
@@ -22,7 +23,7 @@ input,select,button{padding:6px;margin:4px}
 <body>
 
 <header>
-<h2>🍔 HOUSE ARTESANAL</h2>
+<h2>🍔 HOUSE ARTESANAL – SISTEMA DE PEDIDOS</h2>
 </header>
 
 <main>
@@ -35,31 +36,37 @@ input,select,button{padding:6px;margin:4px}
 
 <!-- PEDIDOS -->
 <section id="pedidos">
-<h3>Novo Pedido</h3>
+<h3>Novo / Editar Pedido</h3>
 
-Cliente:<br>
-<select id="clientePedido" onchange="preencherCliente()"></select><br>
+<input type="hidden" id="pedidoEditId">
 
-Telefone:<br>
-<input id="telPedido" disabled><br>
+🔍 Buscar Cliente:
+<input id="buscaCliente" placeholder="Digite o nome" onkeyup="filtrarClientes()">
+
+Cliente:
+<select id="clientePedido" onchange="preencherCliente()"></select>
+
+Telefone:
+<input id="telPedido" disabled>
 
 Tipo:
 <select id="tipoPedido" onchange="toggleEndereco()">
 <option>Local</option>
 <option>Entrega</option>
-</select><br>
+</select>
 
-Endereço:<br>
-<input id="endPedido"><br>
+Endereço:
+<input id="endPedido">
 
-Produto:<br>
+Produto:
 <select id="produtoPedido"></select>
-<button onclick="addItem()">Adicionar</button>
+<button onclick="addItem()">Adicionar Produto</button>
 
 <ul id="itens"></ul>
 
 <b>Total: R$ <span id="total">0.00</span></b><br><br>
 
+<button onclick="salvarPedido()">Salvar Pedido</button>
 <button onclick="salvarPedido(true)">Salvar e Imprimir</button>
 
 <h3>Pedidos</h3>
@@ -72,7 +79,7 @@ Produto:<br>
 <input id="nomeCli" placeholder="Nome">
 <input id="telCli" placeholder="Telefone">
 <input id="endCli" placeholder="Endereço">
-<button onclick="addCliente()">Salvar</button>
+<button onclick="addCliente()">Salvar Cliente</button>
 <table id="listaClientes"></table>
 </section>
 
@@ -81,7 +88,7 @@ Produto:<br>
 <h3>Produtos</h3>
 <input id="nomeProd" placeholder="Nome">
 <input id="valorProd" type="number" placeholder="Valor">
-<button onclick="addProduto()">Salvar</button>
+<button onclick="addProduto()">Salvar Produto</button>
 <table id="listaProdutos"></table>
 </section>
 
@@ -124,8 +131,17 @@ nomeProd.value=valorProd.value="";
 render();
 }
 
+function filtrarClientes(){
+let termo = buscaCliente.value.toLowerCase();
+clientePedido.innerHTML="";
+clientes.filter(c=>c.nome.toLowerCase().includes(termo))
+.forEach(c=>clientePedido.innerHTML+=`<option value="${c.id}">${c.nome}</option>`);
+preencherCliente();
+}
+
 function preencherCliente(){
 let c=clientes.find(c=>c.id==clientePedido.value);
+if(!c) return;
 telPedido.value=c.tel;
 endPedido.value=c.end;
 }
@@ -151,10 +167,11 @@ itens.innerHTML+=`<li>${i.qtd}x ${i.nome}</li>`;
 total.textContent=t.toFixed(2);
 }
 
-function salvarPedido(imprimir){
-let c=clientes.find(c=>c.id==clientePedido.value);
+function salvarPedido(imprimir=false){
+let id = pedidoEditId.value || Date.now();
+let c = clientes.find(c=>c.id==clientePedido.value);
 let pedido={
-id:Date.now(),
+id,
 cliente:c.nome,
 telefone:c.tel,
 endereco:endPedido.value,
@@ -164,37 +181,107 @@ valor:+total.textContent,
 status:"Em preparo",
 data:new Date()
 };
+
+pedidos = pedidos.filter(p=>p.id!=id);
 pedidos.push(pedido);
 localStorage.setItem("pedidos",JSON.stringify(pedidos));
+
 if(imprimir) imprimirPedido(pedido);
+
+pedidoEditId.value="";
 itensPedido=[];
 render();
 }
 
-function imprimirPedido(p){
-let w=window.open("","","width=300");
-w.document.write(`
-<b>HOUSE ARTESANAL</b><hr>
-Cliente: ${p.cliente}<br>
-${p.tipo=="Entrega"?"Endereço: "+p.endereco+"<br>":""}
-<hr>
-${p.itens.map(i=>`${i.qtd}x ${i.nome}`).join("<br>")}
-<hr>
-Total: R$ ${p.valor.toFixed(2)}
-`);
-w.print();
+function editarPedido(id){
+let p=pedidos.find(p=>p.id==id);
+pedidoEditId.value=p.id;
+clientePedido.value=clientes.find(c=>c.nome==p.cliente)?.id;
+preencherCliente();
+tipoPedido.value=p.tipo;
+endPedido.value=p.endereco;
+itensPedido=[...p.itens];
+renderItens();
 }
 
+function mudarStatus(id,valor){
+let p=pedidos.find(p=>p.id==id);
+p.status=valor;
+localStorage.setItem("pedidos",JSON.stringify(pedidos));
+render();
+}
+
+<script>
+function imprimirPedido(p){
+let w = window.open("", "", "width=300,height=600");
+
+w.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Impressão</title>
+<style>
+@media print {
+  body { margin: 0; }
+}
+body{
+  width:58mm;
+  font-family: monospace;
+  font-size:12px;
+}
+hr{
+  border:none;
+  border-top:1px dashed #000;
+}
+.center{text-align:center}
+.right{text-align:right}
+</style>
+</head>
+<body onload="window.print();window.close()">
+
+<div class="center">
+<b>HOUSE ARTESANAL</b><br>
+----------------------<br>
+</div>
+
+Pedido Nº ${p.id}<br>
+Cliente: ${p.cliente}<br>
+${p.tipo=="Entrega" ? "Endereço: "+p.endereco+"<br>" : ""}
+Telefone: ${p.telefone}<br>
+<hr>
+
+${p.itens.map(i=>`${i.qtd}x ${i.nome}<span class="right"> R$ ${(i.qtd*i.valor).toFixed(2)}</span>`).join("<br>")}
+
+<hr>
+<b>Total: R$ ${p.valor.toFixed(2)}</b><br>
+Status: ${p.status}<br>
+<hr>
+
+${new Date(p.data).toLocaleString("pt-BR")}<br>
+
+<div class="center">
+Obrigado pela preferência!
+</div>
+
+</body>
+</html>
+`);
+
+w.document.close();
+}
+</script>
+
 function renderFinanceiro(){
-let f={dia:0,semana:0,mes:0};
 let hoje=new Date();
+let total=0;
 pedidos.filter(p=>p.status=="Entregue").forEach(p=>{
 let d=new Date(p.data);
-if(d.toDateString()==hoje.toDateString())f.dia+=p.valor;
-if((hoje-d)<=7*86400000)f.semana+=p.valor;
-if(d.getMonth()==hoje.getMonth())f.mes+=p.valor;
+if(filtroFinanceiro.value=="dia" && d.toDateString()==hoje.toDateString()) total+=p.valor;
+if(filtroFinanceiro.value=="semana" && (hoje-d)<=7*86400000) total+=p.valor;
+if(filtroFinanceiro.value=="mes" && d.getMonth()==hoje.getMonth()) total+=p.valor;
 });
-financeiroDados.innerHTML=`Total: R$ ${f[filtroFinanceiro.value].toFixed(2)}`;
+financeiroDados.innerHTML=`<b>Total: R$ ${total.toFixed(2)}</b>`;
 }
 
 function render(){
@@ -204,14 +291,24 @@ clientes.forEach(c=>clientePedido.innerHTML+=`<option value="${c.id}">${c.nome}<
 produtoPedido.innerHTML="";
 produtos.forEach(p=>produtoPedido.innerHTML+=`<option value="${p.id}">${p.nome} - R$${p.valor}</option>`);
 
-listaClientes.innerHTML="<tr><th>Nome</th><th>Telefone</th><th>Endereço</th></tr>";
-clientes.forEach(c=>listaClientes.innerHTML+=`<tr><td>${c.nome}</td><td>${c.tel}</td><td>${c.end}</td></tr>`);
-
-listaProdutos.innerHTML="<tr><th>Nome</th><th>Valor</th></tr>";
-produtos.forEach(p=>listaProdutos.innerHTML+=`<tr><td>${p.nome}</td><td>${p.valor}</td></tr>`);
-
-listaPedidos.innerHTML="<tr><th>Cliente</th><th>Status</th></tr>";
-pedidos.forEach(p=>listaPedidos.innerHTML+=`<tr><td>${p.cliente}</td><td>${p.status}</td></tr>`);
+listaPedidos.innerHTML="<tr><th>Cliente</th><th>Status</th><th>Ações</th></tr>";
+pedidos.forEach(p=>{
+listaPedidos.innerHTML+=`
+<tr>
+<td>${p.cliente}</td>
+<td>
+<select onchange="mudarStatus(${p.id},this.value)">
+<option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
+<option ${p.status=="Pronto"?"selected":""}>Pronto</option>
+<option ${p.status=="Entregue"?"selected":""}>Entregue</option>
+</select>
+</td>
+<td>
+<button onclick="editarPedido(${p.id})">✏️</button>
+<button onclick="imprimirPedido(${JSON.stringify(p)})">🖨️</button>
+</td>
+</tr>`;
+});
 
 renderFinanceiro();
 }
