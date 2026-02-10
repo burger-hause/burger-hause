@@ -15,7 +15,6 @@ main{flex:1;padding:15px}
 .section.active{display:block}
 input,textarea,select,button{width:100%;padding:8px;margin:6px 0}
 .pedido{background:#fff;padding:10px;margin-bottom:10px;display:grid;grid-template-columns:1fr 220px;gap:10px;border-radius:6px}
-.actions button{margin-top:4px}
 .item-produto{background:#eee;padding:6px;border-radius:4px;margin-bottom:4px;display:flex;justify-content:space-between}
 </style>
 </head>
@@ -36,7 +35,7 @@ input,textarea,select,button{width:100%;padding:8px;margin:6px 0}
 <div id="pedidos" class="section active">
 <h2>Novo Pedido</h2>
 
-<input id="cliente" placeholder="Cliente">
+<input id="cliente" placeholder="Nome do cliente">
 
 <select id="tipo" onchange="toggleEndereco()">
 <option value="Local">Local</option>
@@ -45,13 +44,14 @@ input,textarea,select,button{width:100%;padding:8px;margin:6px 0}
 
 <input id="endereco" placeholder="Endereço completo" style="display:none">
 
+<!-- ÚNICA BARRA DE PRODUTOS -->
 <input id="buscaProduto" placeholder="Buscar produto..." oninput="buscarProduto()">
 <select id="listaBusca" size="5"></select>
 <button onclick="addProduto()">Adicionar Produto</button>
 
 <div id="carrinho"></div>
 
-<textarea id="descricao" placeholder="Descrição"></textarea>
+<textarea id="descricao" placeholder="Descrição do pedido"></textarea>
 <input id="valor" readonly placeholder="Valor total">
 
 <select id="pagamento">
@@ -60,7 +60,7 @@ input,textarea,select,button{width:100%;padding:8px;margin:6px 0}
 <option>Dinheiro</option>
 </select>
 
-<button id="btnSalvar" onclick="salvarPedido()">Salvar Pedido</button>
+<button onclick="salvarPedido()">Salvar Pedido</button>
 
 <hr>
 <h3>Pedidos</h3>
@@ -100,7 +100,6 @@ input,textarea,select,button{width:100%;padding:8px;margin:6px 0}
 let produtos=JSON.parse(localStorage.getItem("produtos"))||[]
 let pedidos=JSON.parse(localStorage.getItem("pedidos"))||[]
 let carrinho=[]
-let editIndex=null
 let numPedido=localStorage.getItem("numPedido")||1
 
 function abrir(id){
@@ -138,7 +137,6 @@ renderCarrinho()
 
 function renderCarrinho(){
 let total=0,desc=[]
-carrinho.innerHTML=""
 document.getElementById("carrinho").innerHTML=""
 carrinho.forEach((p,i)=>{
 total+=p.valor*p.qtd
@@ -158,58 +156,21 @@ valor.value=total.toFixed(2)
 
 function salvarPedido(){
 if(!cliente.value||!valor.value)return
-if(editIndex!==null){
-Object.assign(pedidos[editIndex],{cliente:cliente.value,tipo:tipo.value,endereco:endereco.value,descricao:descricao.value,valor:+valor.value,pagamento:pagamento.value})
-editIndex=null
-btnSalvar.innerText="Salvar Pedido"
-}else{
-pedidos.push({id:numPedido++,cliente:cliente.value,descricao:descricao.value,valor:+valor.value,tipo:tipo.value,endereco:endereco.value,pagamento:pagamento.value,status:"Em preparo",data:new Date().toISOString()})
+pedidos.push({
+id:numPedido++,
+cliente:cliente.value,
+tipo:tipo.value,
+endereco:endereco.value,
+descricao:descricao.value,
+valor:+valor.value,
+pagamento:pagamento.value,
+status:"Em preparo",
+data:new Date().toISOString()
+})
 localStorage.setItem("numPedido",numPedido)
-}
 cliente.value="";descricao.value="";valor.value="";endereco.value=""
 carrinho=[]
 document.getElementById("carrinho").innerHTML=""
-save();render()
-}
-
-function editarPedido(i){
-let p=pedidos[i]
-cliente.value=p.cliente
-tipo.value=p.tipo
-endereco.value=p.endereco
-descricao.value=p.descricao
-valor.value=p.valor
-pagamento.value=p.pagamento
-toggleEndereco()
-editIndex=i
-btnSalvar.innerText="Salvar Alteração"
-abrir('pedidos')
-}
-
-function excluirPedido(i){
-if(confirm("Excluir pedido?")){
-pedidos.splice(i,1)
-save();render()
-}
-}
-
-function imprimirPedido(p){
-let w=window.open("","","width=300")
-w.document.write(`
-<img src="logo.png.jpg" style="width:120px"><br>
-<b>Pedido #${p.id}</b><br>
-Cliente: ${p.cliente}<br>
-${p.tipo==="Entrega"?"Endereço: "+p.endereco+"<br>":""}
-${p.descricao}<br>
-Valor: R$ ${p.valor.toFixed(2)}<br>
-Pagamento: ${p.pagamento}<br>
-${new Date(p.data).toLocaleString()}
-`)
-w.print()
-}
-
-function statusPedido(i,v){
-pedidos[i].status=v
 save();render()
 }
 
@@ -222,19 +183,9 @@ listaPedidos.innerHTML+=`
 <div>
 <b>#${p.id}</b> ${p.cliente}<br>
 ${p.descricao}<br>
-${p.tipo==="Entrega"?"<b>Endereço:</b> "+p.endereco+"<br>":""}
-<b>R$ ${p.valor.toFixed(2)}</b> - ${p.pagamento}<br>
+${p.tipo==="Entrega"?"Endereço: "+p.endereco+"<br>":""}
+R$ ${p.valor.toFixed(2)} - ${p.pagamento}<br>
 ${new Date(p.data).toLocaleString()}
-</div>
-<div class="actions">
-<select onchange="statusPedido(${i},this.value)">
-<option ${p.status==="Em preparo"?"selected":""}>Em preparo</option>
-<option ${p.status==="Pronto"?"selected":""}>Pronto</option>
-<option ${p.status==="Entregue"?"selected":""}>Entregue</option>
-</select>
-<button onclick="editarPedido(${i})">Editar</button>
-<button onclick="imprimirPedido(pedidos[${i}])">Imprimir</button>
-<button onclick="excluirPedido(${i})">Excluir</button>
 </div>
 </div>`
 if(p.tipo==="Entrega"){
