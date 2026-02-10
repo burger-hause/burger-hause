@@ -242,22 +242,41 @@ valor.value=total.toFixed(2);
 }
 
 function salvarPedido(){
-let pedido={
-id:Date.now(),
-cliente:cliente.value,
-telefone:telefone.value,
-tipo:tipo.value,
-endereco:endereco.value,
-descricao:descricao.value,
-valor:Number(valor.value),
-pagamento:pagamento.value,
-data:new Date().toLocaleString(),
-status:"Em preparo"
-};
-pedidos.push(pedido);
-localStorage.pedidos=JSON.stringify(pedidos);
-carrinho={};
-render();
+
+  if(!cliente.value || !descricao.value || !valor.value){
+    alert("Preencha o pedido corretamente");
+    return;
+  }
+
+  let pedido = {
+    id: Date.now(),
+    cliente: cliente.value,
+    telefone: telefone.value || "",
+    tipo: tipo.value,
+    endereco: tipo.value === "Entrega" ? endereco.value : "",
+    descricao: descricao.value,
+    valor: Number(valor.value),
+    pagamento: pagamento.value,
+    data: new Date().toLocaleString(),
+    status: "Em preparo"
+  };
+
+  pedidos.push(pedido);
+  localStorage.setItem("pedidos", JSON.stringify(pedidos));
+
+  // LIMPA FORMULÁRIO
+  cliente.value = "";
+  telefone.value = "";
+  endereco.value = "";
+  descricao.value = "";
+  valor.value = "";
+  buscaProduto.value = "";
+  buscaCliente.value = "";
+  listaBusca.innerHTML = "";
+  listaClientesBusca.innerHTML = "";
+  carrinho = {};
+
+  render();
 }
 
 /* -------- RENDER -------- */
