@@ -291,4 +291,75 @@ listaProdutos.innerHTML+=`${p.nome} - R$ ${p.valor.toFixed(2)}
 <button onclick="removerProduto(${i})">Excluir</button><br>`;
 });
 
-/* ped*
+/* pedidos */
+listaPedidos.innerHTML="";
+let porData={};
+
+pedidos.forEach((p,i)=>{
+if(!porData[p.data]) porData[p.data]=[];
+porData[p.data].push({...p,index:i});
+});
+
+Object.keys(porData).sort().reverse().forEach(d=>{
+listaPedidos.innerHTML+=`<div class="data-titulo">${d}</div>`;
+porData[d].forEach(p=>{
+listaPedidos.innerHTML+=`
+<div class="pedido">
+<div class="pedido-info">
+<strong>#${p.numero} - ${p.cliente}</strong><br>
+${p.descricao}<br>
+${p.tipo==="Entrega"?"📍 "+p.endereco+"<br>":""}
+💰 R$ ${p.valor.toFixed(2)}<br>
+⏰ ${p.hora}
+</div>
+<div class="pedido-actions">
+<select onchange="alterarStatus(${p.index},this.value)">
+<option ${p.status==="Em preparo"?"selected":""}>Em preparo</option>
+<option ${p.status==="Pronto"?"selected":""}>Pronto</option>
+<option ${p.status==="Entregue"?"selected":""}>Entregue</option>
+</select>
+<button onclick="imprimirPedido(pedidos[${p.index}])">Imprimir</button>
+<button onclick="excluirPedido(${p.index})">Excluir</button>
+</div>
+</div>`;
+});
+});
+
+/* entregas */
+listaEntregas.innerHTML="";
+pedidos.filter(p=>p.tipo==="Entrega").forEach(p=>{
+listaEntregas.innerHTML+=`
+<div class="pedido">
+<div class="pedido-info">
+<strong>#${p.numero} - ${p.cliente}</strong><br>
+${p.endereco}<br>
+Status: ${p.status}
+</div>
+</div>`;
+});
+
+/* financeiro */
+let total={Pix:0,Cartão:0,Dinheiro:0};
+let hoje=new Date().toISOString().split("T")[0];
+
+pedidos.filter(p=>p.status==="Entregue").forEach(p=>{
+let ok=false;
+if(filtro==="dia") ok=p.data===hoje;
+if(filtro==="semana") ok=mesmaSemana(p.data);
+if(filtro==="mes") ok=p.data.slice(0,7)===hoje.slice(0,7);
+if(filtro==="tudo") ok=true;
+if(ok) total[p.pagamento]+=p.valor;
+});
+
+financeiroDados.innerHTML=`
+Pix: R$ ${total.Pix.toFixed(2)}<br>
+Cartão: R$ ${total.Cartão.toFixed(2)}<br>
+Dinheiro: R$ ${total.Dinheiro.toFixed(2)}<hr>
+<strong>Total: R$ ${(total.Pix+total.Cartão+total.Dinheiro).toFixed(2)}</strong>`;
+}
+
+renderizar();
+</script>
+
+</body>
+</html>
