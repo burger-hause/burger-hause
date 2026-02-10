@@ -241,23 +241,51 @@ total+=carrinho[id]*p.valor;
 valor.value=total.toFixed(2);
 }
 
-function salvarPedido(){
-let pedido={
-id:Date.now(),
-cliente:cliente.value,
-telefone:telefone.value,
-tipo:tipo.value,
-endereco:endereco.value,
-descricao:descricao.value,
-valor:Number(valor.value),
-pagamento:pagamento.value,
-data:new Date().toLocaleString(),
-status:"Em preparo"
-};
-pedidos.push(pedido);
-localStorage.pedidos=JSON.stringify(pedidos);
-carrinho={};
-render();
+function salvarPedido() {
+
+  if (!cliente.value.trim()) {
+    alert("Informe o nome do cliente");
+    return;
+  }
+
+  if (!descricao.value.trim() || !valor.value) {
+    alert("Adicione ao menos um produto ao pedido");
+    return;
+  }
+
+  let pedido = {
+    id: Date.now(),
+    cliente: cliente.value.trim(),
+    telefone: telefone.value.trim(),
+    tipo: tipo.value,
+    endereco: tipo.value === "Entrega" ? endereco.value.trim() : "",
+    descricao: descricao.value.trim(),
+    valor: Number(valor.value),
+    pagamento: pagamento.value,
+    data: new Date().toLocaleString(),
+    status: "Em preparo"
+  };
+
+  // SALVA PEDIDO
+  pedidos.push(pedido);
+  localStorage.setItem("pedidos", JSON.stringify(pedidos));
+
+  // LIMPA FORMULÁRIO
+  cliente.value = "";
+  telefone.value = "";
+  endereco.value = "";
+  descricao.value = "";
+  valor.value = "";
+  buscaProduto.value = "";
+  buscaCliente.value = "";
+  listaBusca.innerHTML = "";
+  listaClientesBusca.innerHTML = "";
+  carrinho = {};
+
+  // ATUALIZA TELAS
+  render();
+}
+
 }
 
 /* -------- RENDER -------- */
