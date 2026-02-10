@@ -5,99 +5,72 @@
 <title>Sistema da Lanchonete</title>
 
 <style>
-body{margin:0;font-family:Arial;background:#f2f2f2;}
-header{background:#222;color:#fff;text-align:center;padding:10px;}
-header img{max-width:120px;display:block;margin:0 auto 5px;}
-nav{display:flex;background:#333;}
-nav button{flex:1;padding:12px;border:none;background:none;color:#fff;cursor:pointer;}
-nav button:hover{background:#444;}
-.container{padding:15px;}
-.section{display:none;}
-.section.active{display:block;}
+body{margin:0;font-family:Arial;background:#f2f2f2;display:flex}
+aside{width:180px;background:#222;color:#fff;min-height:100vh}
+aside img{width:120px;display:block;margin:10px auto}
+aside button{
+width:100%;padding:12px;border:none;background:none;
+color:#fff;text-align:left;cursor:pointer
+}
+aside button:hover{background:#444}
+
+main{flex:1;padding:15px}
+.section{display:none}
+.section.active{display:block}
 
 input,textarea,select,button{
-width:100%;
-padding:8px;
-margin:5px 0;
-box-sizing:border-box;
+width:100%;padding:8px;margin:5px 0;box-sizing:border-box
 }
 
 .pedido{
-background:#fff;
-padding:10px;
-border-radius:6px;
-margin-bottom:8px;
-display:flex;
+background:#fff;padding:10px;margin-bottom:8px;
+display:flex;border-radius:6px
 }
-
-.pedido-info{flex:1;font-size:14px;}
-.pedido-actions{
-width:130px;
-display:flex;
-flex-direction:column;
-gap:6px;
-border-left:1px solid #ddd;
-padding-left:8px;
-}
+.info{flex:1;font-size:14px}
+.actions{width:120px;border-left:1px solid #ddd;padding-left:8px}
 
 .item-produto{
-background:#eee;
-padding:5px;
-border-radius:4px;
-margin-bottom:4px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-font-size:14px;
+background:#eee;padding:5px;border-radius:4px;
+margin-bottom:4px;display:flex;
+justify-content:space-between;align-items:center
 }
-.item-produto button{width:auto;padding:2px 6px;}
-
-.data-titulo{
-background:#ddd;
-padding:5px;
-margin-top:15px;
-font-weight:bold;
-}
+.item-produto button{width:auto;padding:2px 6px}
 </style>
 </head>
 
 <body>
 
-<header>
+<aside>
 <img src="logo.png.jpg">
-<h2>Sistema da Lanchonete</h2>
-</header>
+<button onclick="abrir('pedidos')">Pedidos</button>
+<button onclick="abrir('entregas')">Entregas</button>
+<button onclick="abrir('financeiro')">Financeiro</button>
+<button onclick="abrir('produtos')">Produtos</button>
+</aside>
 
-<nav>
-<button onclick="abrirAba('pedidos')">Pedidos</button>
-<button onclick="abrirAba('produtos')">Produtos</button>
-<button onclick="abrirAba('entregas')">Entregas</button>
-<button onclick="abrirAba('financeiro')">Financeiro</button>
-</nav>
-
-<div class="container">
+<main>
 
 <!-- PEDIDOS -->
 <div id="pedidos" class="section active">
-
 <h3>Novo Pedido</h3>
 
-<input id="cliente" placeholder="Nome do cliente">
+<input id="cliente" placeholder="Cliente">
 
-<input id="buscaProduto" placeholder="Pesquisar produto" oninput="buscarProdutos()">
-<select id="listaBusca"></select>
-<button onclick="adicionarProdutoPedido()">Adicionar Produto</button>
-
-<div id="listaCarrinho"></div>
-
-<textarea id="descricao" placeholder="Descrição do pedido"></textarea>
-
-<select id="tipo" onchange="endereco.style.display=this.value==='Entrega'?'block':'none'">
-<option>Local</option>
-<option>Entrega</option>
+<select id="tipo" onchange="toggleEndereco()">
+<option value="Local">Local</option>
+<option value="Entrega">Entrega</option>
 </select>
 
-<textarea id="endereco" placeholder="Endereço" style="display:none;"></textarea>
+<input id="endereco" placeholder="Endereço" style="display:none">
+
+<input id="buscaProduto" placeholder="Buscar produto" oninput="buscarProduto()">
+<select id="listaBusca"></select>
+<button onclick="addProduto()">Adicionar Produto</button>
+
+<div id="carrinho"></div>
+
+<textarea id="descricao" placeholder="Descrição"></textarea>
+<input id="valor" readonly>
 
 <select id="pagamento">
 <option>Pix</option>
@@ -105,260 +78,152 @@ font-weight:bold;
 <option>Dinheiro</option>
 </select>
 
-<input id="valor" type="number" placeholder="Valor total">
-
-<button onclick="adicionarPedido()">Adicionar Pedido</button>
+<button onclick="salvarPedido()">Salvar Pedido</button>
 
 <hr>
 <div id="listaPedidos"></div>
 </div>
 
-<!-- PRODUTOS -->
-<div id="produtos" class="section">
-<h3>Cadastrar Produto</h3>
-<input id="nomeProduto" placeholder="Nome do produto">
-<input id="valorProduto" type="number" placeholder="Valor">
-<button onclick="adicionarProduto()">Adicionar Produto</button>
-<hr>
-<div id="listaProdutos"></div>
-</div>
-
 <!-- ENTREGAS -->
 <div id="entregas" class="section">
-<h3>Pedidos para Entrega</h3>
+<h3>Entregas</h3>
 <div id="listaEntregas"></div>
 </div>
 
 <!-- FINANCEIRO -->
 <div id="financeiro" class="section">
-<h3>Financeiro</h3>
-<button onclick="filtro='dia';renderizar()">Hoje</button>
-<button onclick="filtro='semana';renderizar()">Semana</button>
-<button onclick="filtro='mes';renderizar()">Mês</button>
-<button onclick="filtro='tudo';renderizar()">Histórico</button>
-<div id="financeiroDados"></div>
+<h3>Financeiro (Pedidos Entregues)</h3>
+<div id="resumo"></div>
 </div>
 
+<!-- PRODUTOS -->
+<div id="produtos" class="section">
+<h3>Cadastro de Produtos</h3>
+<input id="nomeProd" placeholder="Nome">
+<input id="valorProd" type="number" placeholder="Valor">
+<button onclick="salvarProduto()">Adicionar</button>
+<hr>
+<div id="listaProdutos"></div>
 </div>
+
+</main>
 
 <script>
-let produtos = JSON.parse(localStorage.getItem("produtos")) || [];
-let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
-let ultimoNumero = +localStorage.getItem("ultimoNumero") || 0;
-let carrinho = [];
-let filtro = "dia";
+let produtos=JSON.parse(localStorage.getItem("produtos"))||[]
+let pedidos=JSON.parse(localStorage.getItem("pedidos"))||[]
+let carrinho=[]
+let numPedido=localStorage.getItem("numPedido")||1
 
-function salvar(){
-localStorage.setItem("produtos",JSON.stringify(produtos));
-localStorage.setItem("pedidos",JSON.stringify(pedidos));
-localStorage.setItem("ultimoNumero",ultimoNumero);
+function abrir(id){
+document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"))
+document.getElementById(id).classList.add("active")
+render()
 }
 
-function abrirAba(id){
-document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-renderizar();
+function toggleEndereco(){
+endereco.style.display=tipo.value==="Entrega"?"block":"none"
 }
 
 /* PRODUTOS */
-function adicionarProduto(){
-if(!nomeProduto.value||!valorProduto.value)return;
-produtos.push({nome:nomeProduto.value,valor:+valorProduto.value});
-nomeProduto.value="";valorProduto.value="";
-salvar();renderizar();
+function salvarProduto(){
+produtos.push({nome:nomeProd.value,valor:+valorProd.value})
+nomeProd.value="";valorProd.value=""
+save()
+render()
 }
 
-function removerProduto(i){
-if(confirm("Excluir produto?")){
-produtos.splice(i,1);
-salvar();renderizar();
-}
-}
-
-/* BUSCA */
-function buscarProdutos(){
-listaBusca.innerHTML="";
-produtos
-.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
-.forEach((p,i)=>{
-listaBusca.innerHTML+=`<option value="${i}">${p.nome} - R$ ${p.valor.toFixed(2)}</option>`;
-});
+function buscarProduto(){
+listaBusca.innerHTML=""
+produtos.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
+.forEach((p,i)=>listaBusca.innerHTML+=`<option value="${i}">${p.nome}</option>`)
 }
 
-function adicionarProdutoPedido(){
-let i = listaBusca.value;
-if(i==="") return;
-
-let item = carrinho.find(p=>p.nome===produtos[i].nome);
-if(item){
-item.qtd++;
-}else{
-carrinho.push({nome:produtos[i].nome,valor:produtos[i].valor,qtd:1});
-}
-atualizarCarrinho();
+function addProduto(){
+let p=produtos[listaBusca.value]
+let item=carrinho.find(i=>i.nome===p.nome)
+item?item.qtd++:carrinho.push({nome:p.nome,valor:p.valor,qtd:1})
+renderCarrinho()
 }
 
-function atualizarCarrinho(){
-let total=0;
-let desc=[];
-listaCarrinho.innerHTML="";
-
-carrinho.forEach((p,i)=>{
-total+=p.valor*p.qtd;
-desc.push(`${p.qtd}x ${p.nome}`);
-
-listaCarrinho.innerHTML+=`
+function renderCarrinho(){
+let total=0,desc=[]
+carrinhoDiv=carrinho
+carrinhoDiv.forEach(p=>{
+total+=p.valor*p.qtd
+desc.push(`${p.qtd}x ${p.nome}`)
+})
+carrinho.innerHTML=""
+carrinhoDiv.forEach((p,i)=>{
+carrinho.innerHTML+=`
 <div class="item-produto">
-${p.qtd}x ${p.nome} - R$ ${(p.valor*p.qtd).toFixed(2)}
-<div>
-<button onclick="p.qtd++;atualizarCarrinho()">+</button>
-<button onclick="p.qtd--;if(p.qtd<=0)carrinho.splice(${i},1);atualizarCarrinho()">-</button>
-</div>
-</div>`;
-});
-
-descricao.value=desc.join(", ");
-valor.value=total.toFixed(2);
+${p.qtd}x ${p.nome}
+<button onclick="p.qtd++;renderCarrinho()">+</button>
+<button onclick="p.qtd--;if(p.qtd==0)carrinhoDiv.splice(${i},1);renderCarrinho()">-</button>
+</div>`
+})
+descricao.value=desc.join(", ")
+valor.value=total.toFixed(2)
 }
 
 /* PEDIDOS */
-function adicionarPedido(){
-if(!cliente.value||carrinho.length===0)return alert("Pedido incompleto");
-ultimoNumero++;
-let d=new Date();
-
+function salvarPedido(){
 pedidos.push({
-numero:ultimoNumero,
+id:numPedido++,
 cliente:cliente.value,
 descricao:descricao.value,
+valor:+valor.value,
 tipo:tipo.value,
 endereco:endereco.value,
 pagamento:pagamento.value,
-valor:+valor.value,
-data:d.toISOString().split("T")[0],
-hora:d.toLocaleTimeString(),
-status:"Em preparo"
-});
-
-cliente.value="";descricao.value="";valor.value="";endereco.value="";
-carrinho=[];
-salvar();renderizar();
+status:"Em preparo",
+data:new Date().toLocaleString()
+})
+localStorage.setItem("numPedido",numPedido)
+cliente.value="";descricao.value="";valor.value=""
+carrinho=[]
+save();render()
 }
 
-function alterarStatus(i,s){
-pedidos[i].status=s;
-salvar();renderizar();
-}
-
-function excluirPedido(i){
-if(confirm("Excluir pedido?")){
-pedidos.splice(i,1);
-salvar();renderizar();
-}
-}
-
-function imprimirPedido(p){
-let w=window.open("","","width=300,height=600");
-w.document.write(`<pre>
-PEDIDO Nº ${p.numero}
-Cliente: ${p.cliente}
-
-${p.descricao}
-
-${p.tipo==="Entrega"?"Endereço:\n"+p.endereco:"Local"}
-
-Pagamento: ${p.pagamento}
-Valor: R$ ${p.valor.toFixed(2)}
-Data: ${p.data} ${p.hora}
-</pre>`);
-w.document.close();
-w.print();
-}
-
-/* FINANCEIRO */
-function mesmaSemana(d){
-let h=new Date(),x=new Date(d);
-let i=new Date(h);i.setDate(h.getDate()-h.getDay());
-let f=new Date(i);f.setDate(i.getDate()+6);
-return x>=i&&x<=f;
-}
-
-function renderizar(){
-/* produtos */
-listaProdutos.innerHTML="";
-produtos.forEach((p,i)=>{
-listaProdutos.innerHTML+=`${p.nome} - R$ ${p.valor.toFixed(2)}
-<button onclick="removerProduto(${i})">Excluir</button><br>`;
-});
-
-/* pedidos */
-listaPedidos.innerHTML="";
-let porData={};
+function render(){
+listaPedidos.innerHTML=""
+listaEntregas.innerHTML=""
+let tot={Pix:0,Cartão:0,Dinheiro:0}
 
 pedidos.forEach((p,i)=>{
-if(!porData[p.data]) porData[p.data]=[];
-porData[p.data].push({...p,index:i});
-});
-
-Object.keys(porData).sort().reverse().forEach(d=>{
-listaPedidos.innerHTML+=`<div class="data-titulo">${d}</div>`;
-porData[d].forEach(p=>{
 listaPedidos.innerHTML+=`
 <div class="pedido">
-<div class="pedido-info">
-<strong>#${p.numero} - ${p.cliente}</strong><br>
+<div class="info">
+<b>#${p.id}</b> ${p.cliente}<br>
 ${p.descricao}<br>
-${p.tipo==="Entrega"?"📍 "+p.endereco+"<br>":""}
-💰 R$ ${p.valor.toFixed(2)}<br>
-⏰ ${p.hora}
+R$ ${p.valor} | ${p.pagamento}<br>
+${p.tipo==="Entrega"?p.endereco:""}<br>
+${p.data}
 </div>
-<div class="pedido-actions">
-<select onchange="alterarStatus(${p.index},this.value)">
-<option ${p.status==="Em preparo"?"selected":""}>Em preparo</option>
-<option ${p.status==="Pronto"?"selected":""}>Pronto</option>
-<option ${p.status==="Entregue"?"selected":""}>Entregue</option>
+<div class="actions">
+<select onchange="p.status=this.value;save();render()">
+<option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
+<option ${p.status=="Pronto"?"selected":""}>Pronto</option>
+<option ${p.status=="Entregue"?"selected":""}>Entregue</option>
 </select>
-<button onclick="imprimirPedido(pedidos[${p.index}])">Imprimir</button>
-<button onclick="excluirPedido(${p.index})">Excluir</button>
+<button onclick="pedidos.splice(${i},1);save();render()">Excluir</button>
 </div>
-</div>`;
-});
-});
+</div>`
 
-/* entregas */
-listaEntregas.innerHTML="";
-pedidos.filter(p=>p.tipo==="Entrega").forEach(p=>{
-listaEntregas.innerHTML+=`
-<div class="pedido">
-<div class="pedido-info">
-<strong>#${p.numero} - ${p.cliente}</strong><br>
-${p.endereco}<br>
-Status: ${p.status}
-</div>
-</div>`;
-});
+if(p.tipo==="Entrega")
+listaEntregas.innerHTML+=`#${p.id} - ${p.cliente}<br>${p.endereco}<br>${p.status}<hr>`
 
-/* financeiro */
-let total={Pix:0,Cartão:0,Dinheiro:0};
-let hoje=new Date().toISOString().split("T")[0];
+if(p.status==="Entregue") tot[p.pagamento]+=p.valor
+})
 
-pedidos.filter(p=>p.status==="Entregue").forEach(p=>{
-let ok=false;
-if(filtro==="dia") ok=p.data===hoje;
-if(filtro==="semana") ok=mesmaSemana(p.data);
-if(filtro==="mes") ok=p.data.slice(0,7)===hoje.slice(0,7);
-if(filtro==="tudo") ok=true;
-if(ok) total[p.pagamento]+=p.valor;
-});
-
-financeiroDados.innerHTML=`
-Pix: R$ ${total.Pix.toFixed(2)}<br>
-Cartão: R$ ${total.Cartão.toFixed(2)}<br>
-Dinheiro: R$ ${total.Dinheiro.toFixed(2)}<hr>
-<strong>Total: R$ ${(total.Pix+total.Cartão+total.Dinheiro).toFixed(2)}</strong>`;
+resumo.innerHTML=`Pix: R$ ${tot.Pix}<br>Cartão: R$ ${tot.Cartão}<br>Dinheiro: R$ ${tot.Dinheiro}<br><b>Total: R$ ${(tot.Pix+tot.Cartão+tot.Dinheiro).toFixed(2)}</b>`
 }
 
-renderizar();
+function save(){
+localStorage.setItem("produtos",JSON.stringify(produtos))
+localStorage.setItem("pedidos",JSON.stringify(pedidos))
+}
+
+render()
 </script>
 
 </body>
