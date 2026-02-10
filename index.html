@@ -17,11 +17,22 @@ main{flex:1;padding:15px}
 .section{display:none}
 .section.active{display:block}
 input,textarea,select,button{width:100%;padding:8px;margin:5px 0}
-.pedido{background:#fff;padding:10px;margin-bottom:8px;display:flex;border-radius:6px}
+.pedido{
+background:#fff;padding:10px;margin-bottom:8px;
+display:flex;border-radius:6px
+}
 .info{flex:1}
-.actions{width:150px;border-left:1px solid #ddd;padding-left:8px}
-.item-produto{background:#eee;padding:5px;border-radius:4px;margin-bottom:4px}
-.prod-row{background:#fff;padding:6px;margin-bottom:5px;display:flex;gap:5px}
+.actions{
+width:170px;border-left:1px solid #ddd;
+padding-left:8px;display:flex;flex-direction:column;gap:5px
+}
+.item-produto{
+background:#eee;padding:5px;border-radius:4px;margin-bottom:4px
+}
+.prod-row{
+background:#fff;padding:6px;margin-bottom:5px;display:flex;gap:5px
+}
+.prod-row input{width:100%}
 </style>
 </head>
 
@@ -80,12 +91,10 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0}
 <!-- FINANCEIRO -->
 <div id="financeiro" class="section">
 <h3>Financeiro</h3>
-
 <button onclick="financeiro('dia')">Hoje</button>
 <button onclick="financeiro('semana')">Semana</button>
 <button onclick="financeiro('mes')">Mês</button>
 <button onclick="financeiro('geral')">Geral</button>
-
 <div id="resumo"></div>
 </div>
 
@@ -178,9 +187,32 @@ cliente.value="";descricao.value="";valor.value=""
 carrinho=[]
 save();render()
 }
+
 function statusPedido(i,v){
 pedidos[i].status=v
 save();render()
+}
+
+function excluirPedido(i){
+if(confirm("Excluir este pedido?")){
+pedidos.splice(i,1)
+save();render()
+}
+}
+
+function imprimirPedido(p){
+let w=window.open("","","width=300")
+w.document.write(`
+<img src="logo.png.jpg" style="width:120px"><br>
+<b>Pedido #${p.id}</b><br>
+Cliente: ${p.cliente}<br>
+${p.tipo=="Entrega"?"Endereço: "+p.endereco+"<br>":""}
+${p.descricao}<br>
+Valor: R$ ${p.valor.toFixed(2)}<br>
+Pagamento: ${p.pagamento}<br>
+${new Date(p.data).toLocaleString()}
+`)
+w.print()
 }
 
 /* RENDER */
@@ -202,6 +234,8 @@ ${new Date(p.data).toLocaleString()}
 <option ${p.status=="Pronto"?"selected":""}>Pronto</option>
 <option ${p.status=="Entregue"?"selected":""}>Entregue</option>
 </select>
+<button onclick="imprimirPedido(pedidos[${i}])">🖨️ Imprimir</button>
+<button onclick="excluirPedido(${i})">🗑️ Excluir</button>
 </div>
 </div>`
 if(p.tipo==="Entrega")
