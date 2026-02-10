@@ -28,7 +28,7 @@ display:flex;border-radius:6px
 }
 .info{flex:1;font-size:14px}
 .actions{
-width:140px;border-left:1px solid #ddd;
+width:150px;border-left:1px solid #ddd;
 padding-left:8px;display:flex;flex-direction:column;gap:4px
 }
 
@@ -39,7 +39,11 @@ justify-content:space-between;align-items:center
 }
 .item-produto button{width:auto;padding:2px 6px}
 
-.filtro button{width:auto;margin-right:5px}
+.prod-row{
+background:#fff;padding:6px;margin-bottom:5px;
+display:flex;gap:5px;align-items:center
+}
+.prod-row input{width:100%}
 </style>
 </head>
 
@@ -98,12 +102,6 @@ justify-content:space-between;align-items:center
 <!-- FINANCEIRO -->
 <div id="financeiro" class="section">
 <h3>Financeiro</h3>
-<div class="filtro">
-<button onclick="calcFinanceiro('dia')">Hoje</button>
-<button onclick="calcFinanceiro('semana')">Semana</button>
-<button onclick="calcFinanceiro('mes')">Mês</button>
-<button onclick="calcFinanceiro('geral')">Geral</button>
-</div>
 <div id="resumo"></div>
 </div>
 
@@ -137,11 +135,25 @@ endereco.style.display=tipo.value==="Entrega"?"block":"none"
 
 /* PRODUTOS */
 function salvarProduto(){
+if(!nomeProd.value||!valorProd.value)return
 produtos.push({nome:nomeProd.value,valor:+valorProd.value})
 nomeProd.value="";valorProd.value=""
 save();render()
 }
 
+function renderProdutos(){
+listaProdutos.innerHTML=""
+produtos.forEach((p,i)=>{
+listaProdutos.innerHTML+=`
+<div class="prod-row">
+<input value="${p.nome}" onchange="produtos[${i}].nome=this.value;save()">
+<input type="number" value="${p.valor}" onchange="produtos[${i}].valor=+this.value;save()">
+<button onclick="produtos.splice(${i},1);save();render()">🗑️</button>
+</div>`
+})
+}
+
+/* BUSCA */
 function buscarProduto(){
 listaBusca.innerHTML=""
 produtos.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
@@ -150,6 +162,7 @@ produtos.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase(
 
 function addProduto(){
 let p=produtos[listaBusca.value]
+if(!p)return
 let item=carrinho.find(i=>i.nome===p.nome)
 item?item.qtd++:carrinho.push({nome:p.nome,valor:p.valor,qtd:1})
 renderCarrinho()
@@ -175,6 +188,7 @@ valor.value=total.toFixed(2)
 
 /* PEDIDOS */
 function salvarPedido(){
+if(!cliente.value||carrinho.length==0)return
 pedidos.push({
 id:numPedido++,
 cliente:cliente.value,
@@ -184,7 +198,7 @@ tipo:tipo.value,
 endereco:endereco.value,
 pagamento:pagamento.value,
 status:"Em preparo",
-data:new Date()
+data:new Date().toISOString()
 })
 localStorage.setItem("numPedido",numPedido)
 cliente.value="";descricao.value="";valor.value=""
@@ -192,23 +206,16 @@ carrinho=[]
 save();render()
 }
 
-function imprimir(p){
-let w=window.open("","print")
-w.document.write(`
-<img src="logo.png.jpg" width="120"><br>
-Pedido #${p.id}<br>
-Cliente: ${p.cliente}<br>
-${p.descricao}<br>
-Valor: R$ ${p.valor}<br>
-${p.tipo==="Entrega"?"Endereço: "+p.endereco:""}<br>
-${new Date(p.data).toLocaleString()}
-`)
-w.print()
+function alterarStatus(index,valor){
+pedidos[index].status=valor
+save();render()
 }
 
 function render(){
 listaPedidos.innerHTML=""
 listaEntregas.innerHTML=""
+let tot={Pix:0,Cartão:0,Dinheiro:0}
+
 pedidos.forEach((p,i)=>{
 listaPedidos.innerHTML+=`
 <div class="pedido">
@@ -220,39 +227,30 @@ ${p.tipo==="Entrega"?p.endereco:""}<br>
 ${new Date(p.data).toLocaleString()}
 </div>
 <div class="actions">
-<select onchange="p.status=this.value;save();render()">
+<select onchange="alterarStatus(${i},this.value)">
 <option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
 <option ${p.status=="Pronto"?"selected":""}>Pronto</option>
 <option ${p.status=="Entregue"?"selected":""}>Entregue</option>
 </select>
-<button onclick="imprimir(p)">Imprimir</button>
 <button onclick="pedidos.splice(${i},1);save();render()">Excluir</button>
 </div>
 </div>`
 
 if(p.tipo==="Entrega")
-listaEntregas.innerHTML+=`#${p.id} - ${p.cliente}<br>${p.endereco}<br>Status: ${p.status}<hr>`
-})
-}
+listaEntregas.innerHTML+=`
+#${p.id} - ${p.cliente}<br>
+${p.endereco}<br>
+Status: <b>${p.status}</b><hr>`
 
-function calcFinanceiro(tipo){
-let hoje=new Date()
-let tot={Pix:0,Cartão:0,Dinheiro:0}
-
-pedidos.filter(p=>p.status==="Entregue").forEach(p=>{
-let d=new Date(p.data)
-let ok=false
-if(tipo==="dia") ok=d.toDateString()===hoje.toDateString()
-if(tipo==="semana") ok=(hoje-d)/86400000<=7
-if(tipo==="mes") ok=d.getMonth()===hoje.getMonth()
-if(tipo==="geral") ok=true
-if(ok) tot[p.pagamento]+=p.valor
+if(p.status==="Entregue") tot[p.pagamento]+=p.valor
 })
 
-resumo.innerHTML=`Pix: R$ ${tot.Pix}<br>
-Cartão: R$ ${tot.Cartão}<br>
-Dinheiro: R$ ${tot.Dinheiro}<br>
+resumo.innerHTML=`Pix: R$ ${tot.Pix.toFixed(2)}<br>
+Cartão: R$ ${tot.Cartão.toFixed(2)}<br>
+Dinheiro: R$ ${tot.Dinheiro.toFixed(2)}<br>
 <b>Total: R$ ${(tot.Pix+tot.Cartão+tot.Dinheiro).toFixed(2)}</b>`
+
+renderProdutos()
 }
 
 function save(){
