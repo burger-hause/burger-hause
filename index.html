@@ -76,18 +76,18 @@ hr{margin:15px 0}
 <div id="pedidos" class="section active">
 <h2>Novo Pedido</h2>
 
-<!-- Campo de buscar clientes cadastrados -->
+<!-- Campo para buscar clientes cadastrados -->
 <input id="buscarClientePedido" placeholder="Buscar cliente cadastrado" oninput="buscarClientePedido()">
 <select id="listaClientesPedido" onchange="selecionarClientePedido()"></select>
 
 <input id="cliente" placeholder="Nome do cliente">
-
+<input id="telefonePedido" placeholder="Telefone" readonly>
 <select id="tipo" onchange="endereco.style.display=this.value=='Entrega'?'block':'none'">
 <option value="Local">Local</option>
 <option value="Entrega">Entrega</option>
 </select>
-
 <input id="endereco" placeholder="Endereço completo" style="display:none">
+<textarea id="obsPedido" placeholder="Observações"></textarea>
 
 <input id="buscaProduto" placeholder="Buscar produto" oninput="buscarProduto()">
 <select id="listaBusca"></select>
@@ -252,7 +252,7 @@ function renderClientes(){
   })
 }
 
-// BUSCAR CLIENTES NA ABA CLIENTES
+/* BUSCAR CLIENTES NA ABA CLIENTES */
 function buscarCliente(){
   listaClientes.innerHTML=""
   clientes
@@ -270,7 +270,7 @@ function selecionarCliente(){
   obsCliente.value = c.obs
 }
 
-// BUSCAR CLIENTES NA ABA PEDIDOS
+/* BUSCAR CLIENTES NA ABA PEDIDOS */
 function buscarClientePedido(){
   listaClientesPedido.innerHTML = ""
   clientes
@@ -283,7 +283,9 @@ function selecionarClientePedido(){
   if(i==="") return
   let c = clientes[i]
   cliente.value = c.nome
+  telefonePedido.value = c.telefone
   endereco.value = c.endereco
+  obsPedido.value = c.obs
   clienteTelefone = c.telefone
   clienteObs = c.obs
 }
@@ -312,6 +314,7 @@ function salvarPedido(){
   localStorage.setItem("numPedido", numPedido)
   cliente.value=""; descricao.value=""; valor.value=""; carrinho=[]
   endereco.value=""; clienteTelefone=""; clienteObs=""
+  telefonePedido.value=""; obsPedido.value=""
   save(); render()
 }
 
