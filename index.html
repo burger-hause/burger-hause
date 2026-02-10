@@ -5,87 +5,23 @@
 <title>Controle da Lanchonete</title>
 
 <style>
-body{
-    margin:0;
-    font-family:Arial, sans-serif;
-    background:#f2f2f2;
-}
-
-header{
-    background:#222;
-    color:#fff;
-    text-align:center;
-    padding:10px;
-}
-
-header img{
-    max-width:120px;
-    display:block;
-    margin:0 auto 5px;
-}
-
-nav{
-    display:flex;
-    background:#333;
-}
-
-nav button{
-    flex:1;
-    padding:12px;
-    border:none;
-    background:none;
-    color:#fff;
-    cursor:pointer;
-}
-
-nav button:hover{
-    background:#444;
-}
-
-.container{
-    padding:15px;
-}
-
+body{margin:0;font-family:Arial,sans-serif;background:#f2f2f2;}
+header{background:#222;color:#fff;text-align:center;padding:10px;}
+header img{max-width:120px;display:block;margin:0 auto 5px;}
+nav{display:flex;background:#333;}
+nav button{flex:1;padding:12px;border:none;background:none;color:#fff;cursor:pointer;}
+nav button:hover{background:#444;}
+.container{padding:15px;}
 .section{display:none;}
 .section.active{display:block;}
+input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:border-box;}
 
-input, textarea, select, button{
-    width:100%;
-    padding:8px;
-    margin:5px 0;
-    box-sizing:border-box;
-}
+.pedido{background:#fff;border-radius:5px;padding:10px;margin-bottom:8px;display:flex;gap:10px;}
+.pedido-info{flex:1;font-size:14px;}
+.pedido-actions{width:120px;display:flex;flex-direction:column;gap:6px;border-left:1px solid #ddd;padding-left:8px;}
+.data-titulo{background:#ddd;padding:5px;margin-top:15px;font-weight:bold;}
 
-/* CARD DO PEDIDO */
-.pedido{
-    background:#fff;
-    border-radius:5px;
-    padding:10px;
-    margin-bottom:8px;
-    display:flex;
-    gap:10px;
-}
-
-.pedido-info{
-    flex:1;
-    font-size:14px;
-}
-
-.pedido-actions{
-    width:120px;
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-    border-left:1px solid #ddd;
-    padding-left:8px;
-}
-
-.data-titulo{
-    background:#ddd;
-    padding:5px;
-    margin-top:15px;
-    font-weight:bold;
-}
+.produto-item{display:flex;justify-content:space-between;align-items:center;font-size:14px;}
 </style>
 </head>
 
@@ -107,14 +43,18 @@ input, textarea, select, button{
 <!-- PEDIDOS -->
 <div id="pedidos" class="section active">
 
+<h3>Cadastrar Produto</h3>
+<input id="nomeProduto" placeholder="Nome do produto">
+<input id="valorProduto" type="number" placeholder="Valor">
+<button onclick="adicionarProduto()">Adicionar Produto</button>
+
+<hr>
+
 <h3>Novo Pedido</h3>
 
 <input id="cliente" placeholder="Nome do cliente">
 
-<!-- PRODUTOS -->
-<select id="produto" onchange="selecionarProduto()">
-    <option value="">Selecione um produto</option>
-</select>
+<div id="listaProdutos"></div>
 
 <textarea id="descricao" placeholder="Descrição do pedido"></textarea>
 
@@ -131,7 +71,7 @@ input, textarea, select, button{
     <option value="Dinheiro">Dinheiro</option>
 </select>
 
-<input id="valor" type="number" placeholder="Valor do pedido">
+<input id="valor" type="number" placeholder="Valor total">
 
 <button onclick="adicionarPedido()">Adicionar Pedido</button>
 
@@ -149,12 +89,10 @@ input, textarea, select, button{
 <div id="financeiro" class="section">
 <h3>Financeiro</h3>
 
-<div>
-    <button onclick="setFiltro('dia')">Hoje</button>
-    <button onclick="setFiltro('semana')">Semana</button>
-    <button onclick="setFiltro('mes')">Mês</button>
-    <button onclick="setFiltro('tudo')">Histórico</button>
-</div>
+<button onclick="setFiltro('dia')">Hoje</button>
+<button onclick="setFiltro('semana')">Semana</button>
+<button onclick="setFiltro('mes')">Mês</button>
+<button onclick="setFiltro('tudo')">Histórico</button>
 
 <div id="financeiroDados"></div>
 </div>
@@ -162,35 +100,15 @@ input, textarea, select, button{
 </div>
 
 <script>
-/* ===== PRODUTOS CADASTRADOS ===== */
-const produtos = [
-    { nome: "X-Burger", valor: 15 },
-    { nome: "X-Salada", valor: 18 },
-    { nome: "X-Bacon", valor: 22 },
-    { nome: "Refrigerante", valor: 6 },
-    { nome: "Batata Frita", valor: 10 }
-];
-
-/* ===== SISTEMA ===== */
 let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
+let produtos = JSON.parse(localStorage.getItem("produtos")) || [];
 let ultimoNumero = parseInt(localStorage.getItem("ultimoNumero")) || 0;
 let filtroFinanceiro = "dia";
 
-/* carregar produtos */
-produtos.forEach((p,i)=>{
-    produto.innerHTML += `<option value="${i}">${p.nome} - R$ ${p.valor}</option>`;
-});
-
-function selecionarProduto(){
-    if(produto.value==="") return;
-    const p = produtos[produto.value];
-    descricao.value = p.nome;
-    valor.value = p.valor;
-}
-
 function salvar(){
-    localStorage.setItem("pedidos", JSON.stringify(pedidos));
-    localStorage.setItem("ultimoNumero", ultimoNumero);
+    localStorage.setItem("pedidos",JSON.stringify(pedidos));
+    localStorage.setItem("produtos",JSON.stringify(produtos));
+    localStorage.setItem("ultimoNumero",ultimoNumero);
 }
 
 function abrirAba(id){
@@ -200,93 +118,97 @@ function abrirAba(id){
 }
 
 function mostrarEndereco(){
-    endereco.style.display = tipo.value==="Entrega" ? "block" : "none";
+    endereco.style.display = tipo.value==="Entrega"?"block":"none";
+}
+
+function adicionarProduto(){
+    if(!nomeProduto.value||!valorProduto.value) return alert("Preencha o produto");
+    produtos.push({nome:nomeProduto.value,valor:parseFloat(valorProduto.value)});
+    nomeProduto.value="";
+    valorProduto.value="";
+    salvar();
+    renderizarProdutos();
+}
+
+function renderizarProdutos(){
+    listaProdutos.innerHTML="<strong>Produtos:</strong>";
+    produtos.forEach((p,i)=>{
+        listaProdutos.innerHTML+=`
+        <label class="produto-item">
+            <input type="checkbox" onchange="calcularPedido()">
+            ${p.nome} - R$ ${p.valor.toFixed(2)}
+        </label>`;
+    });
+}
+
+function calcularPedido(){
+    let total=0;
+    let desc=[];
+    document.querySelectorAll("#listaProdutos input").forEach((c,i)=>{
+        if(c.checked){
+            total+=produtos[i].valor;
+            desc.push(produtos[i].nome);
+        }
+    });
+    descricao.value=desc.join(", ");
+    valor.value=total.toFixed(2);
 }
 
 function adicionarPedido(){
-    if(!cliente.value || !descricao.value || !valor.value){
-        alert("Preencha todos os campos");
-        return;
-    }
-
-    const agora = new Date();
+    if(!cliente.value||!descricao.value||!valor.value) return alert("Preencha tudo");
+    const agora=new Date();
     ultimoNumero++;
 
     pedidos.push({
-        numero: ultimoNumero,
-        cliente: cliente.value,
-        descricao: descricao.value,
-        tipo: tipo.value,
-        endereco: endereco.value,
-        pagamento: pagamento.value,
-        valor: parseFloat(valor.value),
-        data: agora.toISOString().split("T")[0],
-        hora: agora.toLocaleTimeString(),
+        numero:ultimoNumero,
+        cliente:cliente.value,
+        descricao:descricao.value,
+        tipo:tipo.value,
+        endereco:endereco.value,
+        pagamento:pagamento.value,
+        valor:parseFloat(valor.value),
+        data:agora.toISOString().split("T")[0],
+        hora:agora.toLocaleTimeString(),
         status:"Em preparo"
     });
 
     salvar();
-    cliente.value="";
-    descricao.value="";
-    endereco.value="";
-    valor.value="";
-    produto.value="";
+    cliente.value="";descricao.value="";valor.value="";endereco.value="";
+    document.querySelectorAll("#listaProdutos input").forEach(c=>c.checked=false);
     renderizar();
 }
 
-function alterarStatus(i, status){
-    pedidos[i].status = status;
-    salvar();
-    renderizar();
-}
-
-function excluirPedido(i){
-    if(confirm("Excluir pedido?")){
-        pedidos.splice(i,1);
-        salvar();
-        renderizar();
-    }
-}
+function alterarStatus(i,s){pedidos[i].status=s;salvar();renderizar();}
+function excluirPedido(i){if(confirm("Excluir?")){pedidos.splice(i,1);salvar();renderizar();}}
 
 function imprimirPedido(p){
-    const w = window.open("","","width=300,height=600");
-    w.document.write(`
-<pre style="font-family:monospace;">
+    const w=window.open("","","width=300,height=600");
+    w.document.write(`<pre>
 PEDIDO Nº ${p.numero}
---------------------
 Cliente: ${p.cliente}
 
 ${p.descricao}
 
-${p.tipo==="Entrega" ? "Endereço:\n"+p.endereco : "Consumo no local"}
+${p.tipo==="Entrega"?"Endereço:\n"+p.endereco:"Local"}
 
 Pagamento: ${p.pagamento}
 Valor: R$ ${p.valor.toFixed(2)}
-
-Data: ${p.data}
-Hora: ${p.hora}
-</pre>
-`);
-    w.document.close();
-    w.print();
+Data: ${p.data} ${p.hora}
+</pre>`);
+    w.document.close();w.print();
 }
 
-function setFiltro(f){
-    filtroFinanceiro=f;
-    renderizar();
-}
+function setFiltro(f){filtroFinanceiro=f;renderizar();}
 
-function mesmaSemana(data){
-    const hoje=new Date();
-    const d=new Date(data);
-    const ini=new Date(hoje);
-    ini.setDate(hoje.getDate()-hoje.getDay());
-    const fim=new Date(ini);
-    fim.setDate(ini.getDate()+6);
-    return d>=ini && d<=fim;
+function mesmaSemana(d){
+    const h=new Date();const x=new Date(d);
+    const i=new Date(h);i.setDate(h.getDate()-h.getDay());
+    const f=new Date(i);f.setDate(i.getDate()+6);
+    return x>=i&&x<=f;
 }
 
 function renderizar(){
+    renderizarProdutos();
     listaPedidos.innerHTML="";
     let porData={};
 
@@ -322,14 +244,9 @@ function renderizar(){
 
     listaEntregas.innerHTML="";
     pedidos.filter(p=>p.tipo==="Entrega").forEach(p=>{
-        listaEntregas.innerHTML+=`
-        <div class="pedido">
-            <div class="pedido-info">
-                <strong>#${p.numero} - ${p.cliente}</strong><br>
-                ${p.endereco}<br>
-                Status: ${p.status}
-            </div>
-        </div>`;
+        listaEntregas.innerHTML+=`<div class="pedido"><div class="pedido-info">
+        <strong>#${p.numero} - ${p.cliente}</strong><br>${p.endereco}<br>Status: ${p.status}
+        </div></div>`;
     });
 
     let total={Pix:0,Cartão:0,Dinheiro:0};
@@ -344,12 +261,10 @@ function renderizar(){
         if(ok) total[p.pagamento]+=p.valor;
     });
 
-    financeiroDados.innerHTML=`
-    Pix: R$ ${total.Pix.toFixed(2)}<br>
+    financeiroDados.innerHTML=`Pix: R$ ${total.Pix.toFixed(2)}<br>
     Cartão: R$ ${total.Cartão.toFixed(2)}<br>
     Dinheiro: R$ ${total.Dinheiro.toFixed(2)}<hr>
-    <strong>Total: R$ ${(total.Pix+total.Cartão+total.Dinheiro).toFixed(2)}</strong>
-    `;
+    <strong>Total: R$ ${(total.Pix+total.Cartão+total.Dinheiro).toFixed(2)}</strong>`;
 }
 
 renderizar();
