@@ -241,32 +241,26 @@ total+=carrinho[id]*p.valor;
 valor.value=total.toFixed(2);
 }
 
-function salvarPedido() {
+function salvarPedido(){
 
-  if (!cliente.value.trim()) {
-    alert("Informe o nome do cliente");
-    return;
-  }
-
-  if (!descricao.value.trim() || !valor.value) {
-    alert("Adicione ao menos um produto ao pedido");
+  if(!cliente.value || !descricao.value || !valor.value){
+    alert("Preencha o pedido corretamente");
     return;
   }
 
   let pedido = {
     id: Date.now(),
-    cliente: cliente.value.trim(),
-    telefone: telefone.value.trim(),
+    cliente: cliente.value,
+    telefone: telefone.value || "",
     tipo: tipo.value,
-    endereco: tipo.value === "Entrega" ? endereco.value.trim() : "",
-    descricao: descricao.value.trim(),
+    endereco: tipo.value === "Entrega" ? endereco.value : "",
+    descricao: descricao.value,
     valor: Number(valor.value),
     pagamento: pagamento.value,
     data: new Date().toLocaleString(),
     status: "Em preparo"
   };
 
-  // SALVA PEDIDO
   pedidos.push(pedido);
   localStorage.setItem("pedidos", JSON.stringify(pedidos));
 
@@ -282,10 +276,25 @@ function salvarPedido() {
   listaClientesBusca.innerHTML = "";
   carrinho = {};
 
-  // ATUALIZA TELAS
   render();
 }
 
+let pedido={
+id:Date.now(),
+cliente:cliente.value,
+telefone:telefone.value,
+tipo:tipo.value,
+endereco:endereco.value,
+descricao:descricao.value,
+valor:Number(valor.value),
+pagamento:pagamento.value,
+data:new Date().toLocaleString(),
+status:"Em preparo"
+};
+pedidos.push(pedido);
+localStorage.pedidos=JSON.stringify(pedidos);
+carrinho={};
+render();
 }
 
 /* -------- RENDER -------- */
@@ -305,4 +314,3 @@ render();
 
 </body>
 </html>
-
