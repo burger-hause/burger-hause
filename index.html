@@ -37,22 +37,6 @@ display:flex;
 flex-direction:column;
 gap:6px;
 }
-
-.item-produto{
-background:#eee;
-padding:5px;
-border-radius:4px;
-margin-bottom:4px;
-}
-
-.prod-row{
-background:#fff;
-padding:6px;
-margin-bottom:5px;
-display:flex;
-gap:5px;
-}
-.prod-row input{width:100%}
 </style>
 </head>
 
@@ -145,12 +129,11 @@ produtos.push({nome:nomeProd.value,valor:+valorProd.value})
 nomeProd.value="";valorProd.value=""
 save();render()
 }
-
 function renderProdutos(){
 listaProdutos.innerHTML=""
 produtos.forEach((p,i)=>{
 listaProdutos.innerHTML+=`
-<div class="prod-row">
+<div>
 <input value="${p.nome}" onchange="produtos[${i}].nome=this.value;save()">
 <input type="number" value="${p.valor}" onchange="produtos[${i}].valor=+this.value;save()">
 <button onclick="produtos.splice(${i},1);save();render()">🗑️</button>
@@ -227,22 +210,25 @@ ${new Date(p.data).toLocaleString()}
 w.print()
 }
 
-/* STATUS / RENDER */
+/* STATUS */
 function statusPedido(i,v){
 pedidos[i].status=v
 save();render()
 }
 
+/* RENDER */
 function render(){
 listaPedidos.innerHTML=""
 listaEntregas.innerHTML=""
+
 pedidos.forEach((p,i)=>{
 listaPedidos.innerHTML+=`
 <div class="pedido">
 <div>
 <b>#${p.id}</b> ${p.cliente}<br>
 ${p.descricao}<br>
-R$ ${p.valor.toFixed(2)} - ${p.pagamento}<br>
+${p.tipo=="Entrega"?`<b>Endereço:</b> ${p.endereco}<br>`:""}
+<b>R$ ${p.valor.toFixed(2)}</b> - ${p.pagamento}<br>
 ${new Date(p.data).toLocaleString()}
 </div>
 <div class="actions">
@@ -263,6 +249,7 @@ listaEntregas.innerHTML+=`
 ${p.endereco}<br>
 Status: ${p.status}<hr>`
 })
+
 renderProdutos()
 }
 
