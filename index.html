@@ -2,381 +2,290 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Sistema Hamburgueria</title>
+<title>Sistema Lanchonete</title>
 
 <style>
-body{margin:0;font-family:Arial;display:flex;background:#f2f2f2}
-aside{width:220px;background:#1e1e1e;color:#fff;padding:15px}
-aside img{width:100%;margin-bottom:15px}
-aside button{width:100%;padding:10px;margin-bottom:6px;border:0;cursor:pointer}
-main{flex:1;padding:20px}
-input,select,textarea,button{width:100%;padding:8px;margin-bottom:6px}
-.card{background:#fff;padding:10px;margin-bottom:10px;border:1px solid #ccc}
+body{margin:0;font-family:Arial}
+header{background:#111;color:#fff;padding:10px;text-align:center}
+main{display:flex;height:calc(100vh - 60px)}
+nav{width:220px;background:#222;color:#fff;padding:10px}
+nav button{width:100%;margin-bottom:5px;padding:8px;border:0;background:#444;color:#fff;cursor:pointer}
+section{flex:1;padding:10px;overflow:auto}
 .hidden{display:none}
-.actions button{width:auto;margin-right:5px}
-small{color:#555}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ccc;padding:5px}
+input,select,button{padding:6px;margin:3px}
+button.print{background:#0a7;color:#fff}
 </style>
 </head>
 
 <body>
 
-<aside>
-<img src="logo.png.jpg">
+<header>
+<img src="logo.png.jpg" height="40"><br>
+<b>SISTEMA DA LANCHONETE</b>
+</header>
+
+<main>
+<nav>
 <button onclick="show('pedidos')">Pedidos</button>
 <button onclick="show('entregas')">Entregas</button>
 <button onclick="show('financeiro')">Financeiro</button>
 <button onclick="show('historico')">Histórico</button>
 <button onclick="show('produtos')">Produtos</button>
 <button onclick="show('clientes')">Clientes</button>
-</aside>
-
-<main>
+</nav>
 
 <!-- PEDIDOS -->
 <section id="pedidos">
-<h2>Novo Pedido</h2>
+<h2>Novo / Editar Pedido</h2>
 
-<input id="buscaCliente" placeholder="Buscar cliente cadastrado">
-<div id="listaClientesBusca"></div>
+<input type="hidden" id="pedidoEditando">
 
-<input id="cliente" placeholder="Nome do cliente">
-<input id="telefone" placeholder="Telefone">
+Cliente:
+<select id="clienteSelect"></select><br>
 
-<select id="tipo">
+Tipo:
+<select id="tipo" onchange="toggleEndereco()">
 <option>Local</option>
 <option>Entrega</option>
-</select>
+</select><br>
 
-<input id="endereco" placeholder="Endereço de entrega" class="hidden">
+Endereço:
+<input id="endereco"><br>
 
-<input id="buscaProduto" placeholder="Buscar produto">
-<div id="listaBusca"></div>
-
-<textarea id="descricao" placeholder="Descrição do pedido"></textarea>
-<input id="valor" readonly placeholder="Valor total">
-
+Pagamento:
 <select id="pagamento">
 <option>Pix</option>
 <option>Cartão</option>
 <option>Dinheiro</option>
-</select>
+</select><br>
 
-<button onclick="salvarPedido()">Salvar Pedido</button>
+Produto:
+<input id="buscaProduto" placeholder="Buscar produto" oninput="buscarProduto()">
+<div id="listaBusca"></div>
+
+<h4>Itens</h4>
+<ul id="itens"></ul>
+
+<b>Total: R$ <span id="total">0.00</span></b><br>
+
+<button onclick="salvarPedido(false)">Salvar</button>
+<button class="print" onclick="salvarPedido(true)">Salvar e Imprimir</button>
 
 <h2>Pedidos</h2>
-<div id="listaPedidos"></div>
+<table id="listaPedidos"></table>
 </section>
 
 <!-- ENTREGAS -->
 <section id="entregas" class="hidden">
 <h2>Entregas</h2>
-<div id="listaEntregas"></div>
+<table id="listaEntregas"></table>
 </section>
 
 <!-- FINANCEIRO -->
 <section id="financeiro" class="hidden">
 <h2>Financeiro</h2>
-<select onchange="renderFinanceiro(this.value)">
+<select id="filtroFinanceiro" onchange="renderFinanceiro()">
 <option value="dia">Hoje</option>
 <option value="semana">Semana</option>
 <option value="mes">Mês</option>
-<option value="geral">Geral</option>
+<option value="total">Total</option>
 </select>
 <div id="financeiroDados"></div>
 </section>
 
 <!-- HISTÓRICO -->
 <section id="historico" class="hidden">
-<h2>Histórico de Pedidos</h2>
-<div id="historicoDados"></div>
+<h2>Histórico</h2>
+<select id="filtroHistorico" onchange="renderHistorico()">
+<option value="dia">Hoje</option>
+<option value="semana">Semana</option>
+<option value="mes">Mês</option>
+</select>
+<button onclick="limparHistorico()">Excluir período</button>
+<table id="listaHistorico"></table>
 </section>
 
 <!-- PRODUTOS -->
 <section id="produtos" class="hidden">
 <h2>Produtos</h2>
-<input id="prodNome" placeholder="Nome do produto">
-<input id="prodValor" placeholder="Valor">
-<button onclick="addProduto()">Salvar Produto</button>
-<div id="listaProdutos"></div>
+<input type="hidden" id="prodEditando">
+<input id="nomeProd" placeholder="Nome">
+<input id="valorProd" type="number" placeholder="Valor">
+<button onclick="salvarProduto()">Salvar</button>
+<table id="listaProdutos"></table>
 </section>
 
 <!-- CLIENTES -->
 <section id="clientes" class="hidden">
 <h2>Clientes</h2>
-<input id="cliNome" placeholder="Nome">
-<input id="cliTel" placeholder="Telefone">
-<input id="cliEnd" placeholder="Endereço">
-<button onclick="addCliente()">Salvar Cliente</button>
-<div id="listaClientes"></div>
+<input type="hidden" id="cliEditando">
+<input id="nomeCli" placeholder="Nome">
+<input id="telCli" placeholder="Telefone">
+<input id="endCli" placeholder="Endereço">
+<button onclick="salvarCliente()">Salvar</button>
+<table id="listaClientes"></table>
 </section>
 
 </main>
 
 <script>
-let pedidos=JSON.parse(localStorage.pedidos||"[]");
-let produtos=JSON.parse(localStorage.produtos||"[]");
-let clientes=JSON.parse(localStorage.clientes||"[]");
-let historico=JSON.parse(localStorage.historico||"[]");
-let carrinho={};
+let pedidos=JSON.parse(localStorage.getItem("pedidos")||"[]");
+let produtos=JSON.parse(localStorage.getItem("produtos")||"[]");
+let clientes=JSON.parse(localStorage.getItem("clientes")||"[]");
+let itensPedido=[];
 
+/* UTIL */
 function show(id){
 document.querySelectorAll("section").forEach(s=>s.classList.add("hidden"));
 document.getElementById(id).classList.remove("hidden");
 render();
 }
 
-tipo.onchange=()=>endereco.classList.toggle("hidden",tipo.value!="Entrega");
-
-/* -------- CLIENTES -------- */
-buscaCliente.oninput=()=>{
-listaClientesBusca.innerHTML="";
-clientes.filter(c=>c.nome.toLowerCase().includes(buscaCliente.value.toLowerCase()))
-.forEach(c=>{
-let b=document.createElement("button");
-b.textContent=c.nome+" - "+c.tel;
-b.onclick=()=>{
-cliente.value=c.nome;
-telefone.value=c.tel;
-endereco.value=c.end;
-listaClientesBusca.innerHTML="";
-};
-listaClientesBusca.appendChild(b);
-});
-};
-
-function addCliente(){
-clientes.push({id:Date.now(),nome:cliNome.value,tel:cliTel.value,end:cliEnd.value});
-localStorage.clientes=JSON.stringify(clientes);
-renderClientes();
+function toggleEndereco(){
+endereco.style.display = tipo.value=="Entrega"?"block":"none";
 }
 
-function renderClientes(){
-listaClientes.innerHTML="";
-clientes.forEach(c=>{
-listaClientes.innerHTML+=`
-<div class="card">
-<b>${c.nome}</b><br>
-${c.tel}<br>
-${c.end}<br>
-<div class="actions">
-<button onclick="editCliente(${c.id})">Editar</button>
-<button onclick="delCliente(${c.id})">Excluir</button>
-</div>
-</div>`;
-});
-}
-
-function editCliente(id){
-let c=clientes.find(x=>x.id==id);
-cliNome.value=c.nome; cliTel.value=c.tel; cliEnd.value=c.end;
-delCliente(id,false);
-}
-function delCliente(id,conf=true){
-if(!conf||confirm("Excluir cliente?")){
-clientes=clientes.filter(c=>c.id!=id);
-localStorage.clientes=JSON.stringify(clientes);
-renderClientes();
-}
-}
-
-/* -------- PRODUTOS -------- */
-function addProduto(){
-produtos.push({id:Date.now(),nome:prodNome.value,valor:Number(prodValor.value)});
-localStorage.produtos=JSON.stringify(produtos);
-renderProdutos();
-}
-
-function renderProdutos(){
-listaProdutos.innerHTML="";
-produtos.forEach(p=>{
-listaProdutos.innerHTML+=`
-<div class="card">
-${p.nome} - R$ ${p.valor}
-<div class="actions">
-<button onclick="editProduto(${p.id})">Editar</button>
-<button onclick="delProduto(${p.id})">Excluir</button>
-</div>
-</div>`;
-});
-}
-
-function editProduto(id){
-let p=produtos.find(x=>x.id==id);
-prodNome.value=p.nome; prodValor.value=p.valor;
-delProduto(id,false);
-}
-function delProduto(id,conf=true){
-if(!conf||confirm("Excluir produto?")){
-produtos=produtos.filter(p=>p.id!=id);
-localStorage.produtos=JSON.stringify(produtos);
-renderProdutos();
-}
-}
-
-/* -------- PEDIDOS -------- */
-buscaProduto.oninput=()=>{
+/* PRODUTOS */
+function buscarProduto(){
 listaBusca.innerHTML="";
-produtos.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
-.forEach(p=>{
+let v=buscaProduto.value.toLowerCase();
+produtos.filter(p=>p.nome.toLowerCase().includes(v)).forEach(p=>{
 let b=document.createElement("button");
-b.textContent=p.nome+" R$"+p.valor;
+b.textContent=`${p.nome} R$${p.valor}`;
 b.onclick=()=>addItem(p);
 listaBusca.appendChild(b);
 });
-};
+}
 
 function addItem(p){
-carrinho[p.id]=(carrinho[p.id]||0)+1;
-atualizarDescricao();
+let i=itensPedido.find(x=>x.id==p.id);
+if(i)i.qtd++; else itensPedido.push({...p,qtd:1});
+renderItens();
 }
 
-function atualizarDescricao(){
-descricao.value="";
-let total=0;
-for(let id in carrinho){
-let p=produtos.find(x=>x.id==id);
-descricao.value+=`${carrinho[id]}x ${p.nome}\n`;
-total+=carrinho[id]*p.valor;
+function renderItens(){
+itens.innerHTML="";
+let t=0;
+itensPedido.forEach(i=>{
+t+=i.valor*i.qtd;
+itens.innerHTML+=`<li>${i.qtd}x ${i.nome}</li>`;
+});
+total.textContent=t.toFixed(2);
 }
-valor.value=total.toFixed(2);
-}
 
-function salvarPedido(){
-
-  if(!cliente.value || !descricao.value || !valor.value){
-    alert("Preencha o pedido corretamente");
-    return;
-  }
-
-  let pedido = {
-    id: Date.now(),
-    cliente: cliente.value,
-    telefone: telefone.value || "",
-    tipo: tipo.value,
-    endereco: tipo.value === "Entrega" ? endereco.value : "",
-    descricao: descricao.value,
-    valor: Number(valor.value),
-    pagamento: pagamento.value,
-    data: new Date().toLocaleString(),
-    status: "Em preparo"
-  };
-
-  pedidos.push(pedido);
-  localStorage.setItem("pedidos", JSON.stringify(pedidos));
-
-  // LIMPA FORMULÁRIO
-  cliente.value = "";
-  telefone.value = "";
-  endereco.value = "";
-  descricao.value = "";
-  valor.value = "";
-  buscaProduto.value = "";
-  buscaCliente.value = "";
-  listaBusca.innerHTML = "";
-  listaClientesBusca.innerHTML = "";
-  carrinho = {};
-
-  render();
-}
+/* PEDIDOS */
+function salvarPedido(imprimirAgora){
+let id=pedidoEditando.value||Date.now();
+pedidos=pedidos.filter(p=>p.id!=id);
 
 let pedido={
-id:Date.now(),
-cliente:cliente.value,
-telefone:telefone.value,
+id,
+cliente:clienteSelect.value,
 tipo:tipo.value,
 endereco:endereco.value,
-descricao:descricao.value,
-valor:Number(valor.value),
 pagamento:pagamento.value,
-data:new Date().toLocaleString(),
-status:"Em preparo"
+itens:[...itensPedido],
+valor:+total.textContent,
+status:"Em preparo",
+data:new Date().toISOString()
 };
+
 pedidos.push(pedido);
-localStorage.pedidos=JSON.stringify(pedidos);
-carrinho={};
+localStorage.setItem("pedidos",JSON.stringify(pedidos));
+
+itensPedido=[];
+pedidoEditando.value="";
+render();
+
+if(imprimirAgora) imprimirPedido(pedido);
+}
+
+function editarPedido(id){
+let p=pedidos.find(p=>p.id==id);
+pedidoEditando.value=p.id;
+clienteSelect.value=p.cliente;
+tipo.value=p.tipo;
+endereco.value=p.endereco;
+pagamento.value=p.pagamento;
+itensPedido=[...p.itens];
+renderItens();
+show("pedidos");
+}
+
+/* IMPRESSÃO */
+function imprimirPedido(p){
+let w=window.open("","","width=300");
+w.document.write(`
+<center>
+<img src="logo.png.jpg" width="120"><br>
+<b>Pedido #${p.id}</b>
+</center><hr>
+Cliente: ${p.cliente}<br>
+${p.tipo=="Entrega"?"Endereço: "+p.endereco+"<br>":""}
+<hr>
+${p.itens.map(i=>`${i.qtd}x ${i.nome}`).join("<br>")}
+<hr>
+<b>Total: R$ ${p.valor.toFixed(2)}</b><br>
+Pagamento: ${p.pagamento}<br>
+${new Date(p.data).toLocaleString()}
+`);
+w.print();
+}
+
+/* RENDER PEDIDOS */
+function renderPedidos(){
+listaPedidos.innerHTML="<tr><th>ID</th><th>Cliente</th><th>Status</th><th>Ações</th></tr>";
+pedidos.forEach(p=>{
+listaPedidos.innerHTML+=`
+<tr>
+<td>${p.id}</td>
+<td>${p.cliente}</td>
+<td>${p.status}</td>
+<td>
+<button onclick="editarPedido(${p.id})">✏️</button>
+<button onclick="imprimirPedido(pedidos.find(x=>x.id==${p.id}))">🖨️</button>
+<button onclick="pedidos=pedidos.filter(x=>x.id!=${p.id});localStorage.setItem('pedidos',JSON.stringify(pedidos));render()">❌</button>
+</td>
+</tr>`;
+});
+}
+
+/* CLIENTES */
+function salvarCliente(){
+let id=cliEditando.value;
+if(id){
+let c=clientes.find(c=>c.id==id);
+c.nome=nomeCli.value;c.tel=telCli.value;c.end=endCli.value;
+cliEditando.value="";
+}else clientes.push({id:Date.now(),nome:nomeCli.value,tel:telCli.value,end:endCli.value});
+localStorage.setItem("clientes",JSON.stringify(clientes));
+nomeCli.value=telCli.value=endCli.value="";
 render();
 }
 
-/* -------- RENDER -------- */
-function render(){
-renderPedidos();
-renderEntregas();
-renderFinanceiro("dia");
-renderHistorico();
-renderProdutos();
-renderClientes();
+function renderClientes(){
+clienteSelect.innerHTML="";
+clientes.forEach(c=>clienteSelect.innerHTML+=`<option>${c.nome}</option>`);
+listaClientes.innerHTML="<tr><th>Nome</th><th>Telefone</th><th>Endereço</th><th></th></tr>";
+clientes.forEach(c=>{
+listaClientes.innerHTML+=`
+<tr>
+<td>${c.nome}</td><td>${c.tel}</td><td>${c.end}</td>
+<td><button onclick="cliEditando.value=${c.id};nomeCli.value='${c.nome}';telCli.value='${c.tel}';endCli.value='${c.end}'">✏️</button></td>
+</tr>`;
+});
 }
 
-/* continua… (status, financeiro por dia/semana/mês, histórico com excluir, impressão) */
+/* RENDER GERAL */
+function render(){
+renderPedidos();
+renderClientes();
+}
 
 render();
 </script>
 
 </body>
 </html>
-function imprimirPedidoComEndereco(id) {
-  let p = pedidos.find(p => p.id === id);
-  if (!p) return;
-
-  let win = window.open("", "PRINT", "width=300,height=600");
-
-  win.document.write(`
-    <html>
-    <head>
-      <title>Pedido #${p.id}</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          font-size: 12px;
-          text-align: center;
-        }
-        hr {
-          border-top: 1px dashed #000;
-          border-bottom: none;
-          margin: 8px 0;
-        }
-        .left {
-          text-align: left;
-        }
-      </style>
-    </head>
-    <body>
-
-      <img src="logo.png.jpg" style="max-width:180px"><br>
-      <strong>PEDIDO Nº ${p.id}</strong>
-      <hr>
-
-      <div class="left">
-        <b>Cliente:</b> ${p.cliente}<br>
-        ${p.telefone ? `<b>Telefone:</b> ${p.telefone}<br>` : ""}
-
-        ${p.tipo === "Entrega" && p.endereco
-          ? `<b>Endereço:</b><br>${p.endereco}<br>`
-          : ""}
-
-        <hr>
-
-        <b>Itens:</b><br>
-        ${p.descricao.replace(/\n/g, "<br>")}
-
-        <hr>
-
-        <b>Total:</b> R$ ${p.valor.toFixed(2)}<br>
-        <b>Pagamento:</b> ${p.pagamento}<br>
-        <b>Status:</b> ${p.status}<br>
-        <b>Data:</b> ${p.data}
-      </div>
-
-      <hr>
-      <p>Obrigado pela preferência!</p>
-
-    </body>
-    </html>
-  `);
-
-  win.document.close();
-  win.focus();
-  win.print();
-  win.close();
-}
-
