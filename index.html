@@ -74,6 +74,15 @@ align-items:center;
 </select>
 
 <input id="endereco" placeholder="Endereço completo" style="display:none">
+  <!-- BUSCA DE PRODUTOS -->
+<input id="buscaProduto" placeholder="Buscar produto..." oninput="buscarProduto()">
+
+<select id="listaBusca" size="5" style="margin-bottom:6px;"></select>
+
+<button type="button" onclick="addProduto()">Adicionar Produto</button>
+
+<div id="carrinho"></div>
+
 
 <!-- BUSCA DE PRODUTOS (VISÍVEL) -->
 <input id="buscaProduto" placeholder="Buscar produto..." oninput="buscarProduto()">
@@ -184,10 +193,10 @@ renderCarrinho()
 }
 
 function renderCarrinho(){
-let total=0,desc=[]
-carrinhoDiv.innerHTML=""
-carrinho.innerHTML=""
+let total=0
+let desc=[]
 document.getElementById("carrinho").innerHTML=""
+
 carrinho.forEach((p,i)=>{
 total+=p.valor*p.qtd
 desc.push(`${p.qtd}x ${p.nome}`)
@@ -200,10 +209,10 @@ ${p.qtd}x ${p.nome}
 </div>
 </div>`
 })
+
 descricao.value=desc.join(", ")
 valor.value=total.toFixed(2)
 }
-
 /* PEDIDOS */
 function salvarPedido(){
 if(!cliente.value||!valor.value)return
