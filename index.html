@@ -19,7 +19,7 @@ main{flex:1;padding:15px}
 .section.active{display:block}
 
 input,textarea,select,button{
-width:100%;padding:8px;margin:5px 0;box-sizing:border-box
+width:100%;padding:8px;margin:6px 0;box-sizing:border-box
 }
 
 .pedido{
@@ -27,7 +27,7 @@ background:#fff;
 padding:10px;
 margin-bottom:10px;
 display:grid;
-grid-template-columns: 1fr 200px;
+grid-template-columns: 1fr 220px;
 gap:10px;
 border-radius:6px;
 }
@@ -40,7 +40,7 @@ gap:6px;
 
 .item-produto{
 background:#eee;
-padding:5px;
+padding:6px;
 border-radius:4px;
 margin-bottom:4px;
 display:flex;
@@ -66,17 +66,18 @@ align-items:center;
 <div id="pedidos" class="section active">
 <h2>Novo Pedido</h2>
 
-<input id="cliente" placeholder="Cliente">
+<input id="cliente" placeholder="Nome do cliente">
 
-<select id="tipo" onchange="endereco.style.display=this.value=='Entrega'?'block':'none'">
-<option>Local</option>
-<option>Entrega</option>
+<select id="tipo" onchange="toggleEndereco()">
+<option value="Local">Local</option>
+<option value="Entrega">Entrega</option>
 </select>
 
 <input id="endereco" placeholder="Endereço completo" style="display:none">
 
-<input id="buscaProduto" placeholder="Buscar produto" oninput="buscarProduto()">
-<select id="listaBusca"></select>
+<!-- BUSCA DE PRODUTOS (VISÍVEL) -->
+<input id="buscaProduto" placeholder="Buscar produto..." oninput="buscarProduto()">
+<select id="listaBusca" size="4"></select>
 <button onclick="addProduto()">Adicionar Produto</button>
 
 <div id="carrinho"></div>
@@ -139,6 +140,10 @@ document.getElementById(id).classList.add("active")
 render()
 }
 
+function toggleEndereco(){
+endereco.style.display = tipo.value==="Entrega" ? "block" : "none"
+}
+
 /* PRODUTOS */
 function addProd(){
 if(!nomeProd.value||!valorProd.value)return
@@ -146,6 +151,7 @@ produtos.push({nome:nomeProd.value,valor:+valorProd.value})
 nomeProd.value="";valorProd.value=""
 save();render()
 }
+
 function renderProdutos(){
 listaProdutos.innerHTML=""
 produtos.forEach((p,i)=>{
@@ -158,25 +164,28 @@ listaProdutos.innerHTML+=`
 })
 }
 
-/* BUSCA / CARRINHO */
+/* BUSCA */
 function buscarProduto(){
 listaBusca.innerHTML=""
+if(!buscaProduto.value)return
 produtos
 .filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
-.forEach((p,i)=>listaBusca.innerHTML+=`<option value="${i}">${p.nome}</option>`)
+.forEach((p,i)=>{
+listaBusca.innerHTML+=`<option value="${i}">${p.nome} - R$ ${p.valor.toFixed(2)}</option>`
+})
 }
 
 function addProduto(){
-let p=produtos[listaBusca.value]
+let p = produtos[listaBusca.value]
 if(!p)return
-let item=carrinho.find(i=>i.nome===p.nome)
+let item = carrinho.find(i=>i.nome===p.nome)
 item ? item.qtd++ : carrinho.push({nome:p.nome,valor:p.valor,qtd:1})
 renderCarrinho()
 }
 
 function renderCarrinho(){
-carrinhoDiv=carrinho
 let total=0,desc=[]
+carrinhoDiv.innerHTML=""
 carrinho.innerHTML=""
 document.getElementById("carrinho").innerHTML=""
 carrinho.forEach((p,i)=>{
@@ -200,8 +209,7 @@ function salvarPedido(){
 if(!cliente.value||!valor.value)return
 
 if(editIndex!==null){
-let p=pedidos[editIndex]
-Object.assign(p,{
+Object.assign(pedidos[editIndex],{
 cliente:cliente.value,
 tipo:tipo.value,
 endereco:endereco.value,
@@ -240,7 +248,7 @@ endereco.value=p.endereco
 descricao.value=p.descricao
 valor.value=p.valor
 pagamento.value=p.pagamento
-endereco.style.display=p.tipo=="Entrega"?"block":"none"
+toggleEndereco()
 editIndex=i
 btnSalvar.innerText="Salvar Alteração"
 abrir('pedidos')
@@ -259,7 +267,7 @@ w.document.write(`
 <img src="logo.png.jpg" style="width:120px"><br>
 <b>Pedido #${p.id}</b><br>
 Cliente: ${p.cliente}<br>
-${p.tipo=="Entrega"?"Endereço: "+p.endereco+"<br>":""}
+${p.tipo==="Entrega"?"Endereço: "+p.endereco+"<br>":""}
 ${p.descricao}<br>
 Valor: R$ ${p.valor.toFixed(2)}<br>
 Pagamento: ${p.pagamento}<br>
@@ -268,7 +276,6 @@ ${new Date(p.data).toLocaleString()}
 w.print()
 }
 
-/* STATUS */
 function statusPedido(i,v){
 pedidos[i].status=v
 save();render()
@@ -285,15 +292,15 @@ listaPedidos.innerHTML+=`
 <div>
 <b>#${p.id}</b> ${p.cliente}<br>
 ${p.descricao}<br>
-${p.tipo=="Entrega"?`<b>Endereço:</b> ${p.endereco}<br>`:""}
+${p.tipo==="Entrega"?`<b>Endereço:</b> ${p.endereco}<br>`:""}
 <b>R$ ${p.valor.toFixed(2)}</b> - ${p.pagamento}<br>
 ${new Date(p.data).toLocaleString()}
 </div>
 <div class="actions">
 <select onchange="statusPedido(${i},this.value)">
-<option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
-<option ${p.status=="Pronto"?"selected":""}>Pronto</option>
-<option ${p.status=="Entregue"?"selected":""}>Entregue</option>
+<option ${p.status==="Em preparo"?"selected":""}>Em preparo</option>
+<option ${p.status==="Pronto"?"selected":""}>Pronto</option>
+<option ${p.status==="Entregue"?"selected":""}>Entregue</option>
 </select>
 <button onclick="editarPedido(${i})">✏️ Editar</button>
 <button onclick="imprimirPedido(pedidos[${i}])">🖨️ Imprimir</button>
@@ -301,11 +308,12 @@ ${new Date(p.data).toLocaleString()}
 </div>
 </div>`
 
-if(p.tipo=="Entrega")
+if(p.tipo==="Entrega"){
 listaEntregas.innerHTML+=`
 <b>#${p.id}</b> ${p.cliente}<br>
 ${p.endereco}<br>
 Status: ${p.status}<hr>`
+}
 })
 
 renderProdutos()
@@ -315,12 +323,12 @@ renderProdutos()
 function financeiro(tipo){
 let hoje=new Date()
 let t={Pix:0,Cartão:0,Dinheiro:0}
-pedidos.filter(p=>p.status=="Entregue").forEach(p=>{
+pedidos.filter(p=>p.status==="Entregue").forEach(p=>{
 let d=new Date(p.data),ok=false
-if(tipo=="dia") ok=d.toDateString()==hoje.toDateString()
-if(tipo=="semana") ok=(hoje-d)/86400000<=7
-if(tipo=="mes") ok=d.getMonth()==hoje.getMonth()
-if(tipo=="geral") ok=true
+if(tipo==="dia") ok=d.toDateString()===hoje.toDateString()
+if(tipo==="semana") ok=(hoje-d)/86400000<=7
+if(tipo==="mes") ok=d.getMonth()===hoje.getMonth()
+if(tipo==="geral") ok=true
 if(ok) t[p.pagamento]+=p.valor
 })
 resumo.innerHTML=`
