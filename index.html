@@ -76,6 +76,10 @@ hr{margin:15px 0}
 <div id="pedidos" class="section active">
 <h2>Novo Pedido</h2>
 
+<!-- Campo de buscar clientes cadastrados -->
+<input id="buscarClientePedido" placeholder="Buscar cliente cadastrado" oninput="buscarClientePedido()">
+<select id="listaClientesPedido" onchange="selecionarClientePedido()"></select>
+
 <input id="cliente" placeholder="Nome do cliente">
 
 <select id="tipo" onchange="endereco.style.display=this.value=='Entrega'?'block':'none'">
@@ -248,15 +252,34 @@ function renderClientes(){
   })
 }
 
+// BUSCAR CLIENTES NA ABA CLIENTES
 function buscarCliente(){
   listaClientes.innerHTML=""
   clientes
-    .filter(c=>c.nome.toLowerCase().includes(buscarCliente.value.toLowerCase()))
-    .forEach((c,i)=> listaClientes.innerHTML+=`<option value="${i}">${c.nome}</option>`)
+    .filter(c => c.nome.toLowerCase().includes(buscarCliente.value.toLowerCase()))
+    .forEach((c,i) => listaClientes.innerHTML+=`<option value="${i}">${c.nome}</option>`)
 }
 
 function selecionarCliente(){
   let i = listaClientes.value
+  if(i==="") return
+  let c = clientes[i]
+  nomeCliente.value = c.nome
+  enderecoCliente.value = c.endereco
+  telefoneCliente.value = c.telefone
+  obsCliente.value = c.obs
+}
+
+// BUSCAR CLIENTES NA ABA PEDIDOS
+function buscarClientePedido(){
+  listaClientesPedido.innerHTML = ""
+  clientes
+    .filter(c => c.nome.toLowerCase().includes(buscarClientePedido.value.toLowerCase()))
+    .forEach((c,i) => listaClientesPedido.innerHTML += `<option value="${i}">${c.nome}</option>`)
+}
+
+function selecionarClientePedido(){
+  let i = listaClientesPedido.value
   if(i==="") return
   let c = clientes[i]
   cliente.value = c.nome
@@ -265,6 +288,7 @@ function selecionarCliente(){
   clienteObs = c.obs
 }
 
+/* SALVAR CLIENTES */
 function saveClientes(){
   localStorage.setItem("clientes", JSON.stringify(clientes))
 }
