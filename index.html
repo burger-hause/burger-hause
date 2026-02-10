@@ -41,13 +41,8 @@ nav button:hover {
     padding: 15px;
 }
 
-.section {
-    display: none;
-}
-
-.section.active {
-    display: block;
-}
+.section { display: none; }
+.section.active { display: block; }
 
 input, textarea, select, button {
     width: 100%;
@@ -59,18 +54,26 @@ input, textarea, select, button {
 .pedido {
     background: #fff;
     padding: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     border-radius: 5px;
     font-size: 14px;
 }
 
-.pedido strong {
-    display: block;
+.data-titulo {
+    margin-top: 15px;
+    font-weight: bold;
+    background: #ddd;
+    padding: 5px;
 }
 
 .actions {
     display: flex;
     gap: 5px;
+    margin-top: 5px;
+}
+
+.actions select {
+    flex: 1.5;
 }
 
 .actions button {
@@ -118,7 +121,6 @@ input, textarea, select, button {
 
 <hr>
 
-<h3>Lista de Pedidos</h3>
 <div id="listaPedidos"></div>
 
 </div>
@@ -162,9 +164,10 @@ function adicionarPedido() {
         return;
     }
 
+    const agora = new Date();
     ultimoNumero++;
 
-    const pedido = {
+    pedidos.push({
         numero: ultimoNumero,
         cliente: cliente.value,
         descricao: descricao.value,
@@ -172,32 +175,25 @@ function adicionarPedido() {
         endereco: endereco.value,
         pagamento: pagamento.value,
         valor: parseFloat(valor.value),
-        data: new Date().toLocaleString(),
+        dataISO: agora.toISOString().split("T")[0],
+        hora: agora.toLocaleTimeString(),
         status: "Em preparo"
-    };
+    });
 
-    pedidos.push(pedido);
     salvar();
-    limparCampos();
+    cliente.value = descricao.value = endereco.value = valor.value = "";
     renderizar();
 }
 
-function limparCampos() {
-    cliente.value = "";
-    descricao.value = "";
-    endereco.value = "";
-    valor.value = "";
-}
-
-function alterarStatus(index, status) {
-    pedidos[index].status = status;
+function alterarStatus(i, status) {
+    pedidos[i].status = status;
     salvar();
     renderizar();
 }
 
-function excluirPedido(index) {
-    if (confirm("Deseja excluir este pedido?")) {
-        pedidos.splice(index, 1);
+function excluirPedido(i) {
+    if (confirm("Excluir este pedido?")) {
+        pedidos.splice(i, 1);
         salvar();
         renderizar();
     }
@@ -205,57 +201,60 @@ function excluirPedido(index) {
 
 function imprimirPedido(p) {
     const win = window.open("", "print", "width=300,height=600");
-
     win.document.write(`
 <pre style="font-family: monospace;">
 LANCHONETE
 ------------------------
-Pedido Nº: ${p.numero}
+Pedido Nº ${p.numero}
 
 Cliente: ${p.cliente}
 
-Pedido:
 ${p.descricao}
 
-Tipo: ${p.tipo}
 ${p.tipo === "Entrega" ? "Endereço:\n" + p.endereco : "Consumo no local"}
 
 Pagamento: ${p.pagamento}
 Valor: R$ ${p.valor.toFixed(2)}
 
-Data: ${p.data}
+Data: ${p.dataISO}
+Hora: ${p.hora}
 ------------------------
-</pre>
-    `);
-
+</pre>`);
     win.document.close();
     win.print();
 }
 
 function renderizar() {
-    // PEDIDOS
     listaPedidos.innerHTML = "";
+
+    let agrupado = {};
     pedidos.forEach((p, i) => {
-        listaPedidos.innerHTML += `
-        <div class="pedido">
-            <strong>Pedido Nº ${p.numero} - ${p.cliente}</strong>
-            ${p.descricao}<br>
-            ${p.tipo === "Entrega" ? "📍 " + p.endereco + "<br>" : ""}
-            💰 R$ ${p.valor.toFixed(2)}<br>
-            ${p.data}<br>
-            Pagamento: ${p.pagamento}<br>
+        if (!agrupado[p.dataISO]) agrupado[p.dataISO] = [];
+        agrupado[p.dataISO].push({ ...p, index: i });
+    });
 
-            <select onchange="alterarStatus(${i}, this.value)">
-                <option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
-                <option ${p.status=="Pronto"?"selected":""}>Pronto</option>
-                <option ${p.status=="Entregue"?"selected":""}>Entregue</option>
-            </select>
+    Object.keys(agrupado).reverse().forEach(data => {
+        listaPedidos.innerHTML += `<div class="data-titulo">📅 ${data}</div>`;
+        agrupado[data].forEach(p => {
+            listaPedidos.innerHTML += `
+            <div class="pedido">
+                <strong>#${p.numero} - ${p.cliente}</strong>
+                ${p.descricao}<br>
+                ${p.tipo === "Entrega" ? "📍 " + p.endereco + "<br>" : ""}
+                💰 R$ ${p.valor.toFixed(2)}<br>
+                ⏰ ${p.hora}<br>
 
-            <div class="actions">
-                <button onclick='imprimirPedido(pedidos[${i}])'>🖨 Imprimir</button>
-                <button onclick="excluirPedido(${i})">🗑 Excluir</button>
-            </div>
-        </div>`;
+                <div class="actions">
+                    <select onchange="alterarStatus(${p.index}, this.value)">
+                        <option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
+                        <option ${p.status=="Pronto"?"selected":""}>Pronto</option>
+                        <option ${p.status=="Entregue"?"selected":""}>Entregue</option>
+                    </select>
+                    <button onclick="imprimirPedido(pedidos[${p.index}])">🖨</button>
+                    <button onclick="excluirPedido(${p.index})">🗑</button>
+                </div>
+            </div>`;
+        });
     });
 
     // ENTREGAS
@@ -263,27 +262,21 @@ function renderizar() {
     pedidos.filter(p => p.tipo === "Entrega").forEach(p => {
         listaEntregas.innerHTML += `
         <div class="pedido">
-            <strong>Pedido Nº ${p.numero}</strong>
-            ${p.cliente}<br>
+            <strong>#${p.numero} - ${p.cliente}</strong>
             ${p.endereco}<br>
             Status: ${p.status}
         </div>`;
     });
 
-    // FINANCEIRO
+    // FINANCEIRO (somente entregues)
     let total = { Pix:0, Cartão:0, Dinheiro:0 };
-
-    pedidos.filter(p => p.status === "Entregue").forEach(p => {
-        total[p.pagamento] += p.valor;
-    });
+    pedidos.filter(p => p.status === "Entregue").forEach(p => total[p.pagamento] += p.valor);
 
     financeiroDados.innerHTML = `
-        Pix: R$ ${total.Pix.toFixed(2)}<br>
-        Cartão: R$ ${total.Cartão.toFixed(2)}<br>
-        Dinheiro: R$ ${total.Dinheiro.toFixed(2)}<br>
-        <hr>
-        <strong>Total: R$ ${(total.Pix + total.Cartão + total.Dinheiro).toFixed(2)}</strong>
-    `;
+Pix: R$ ${total.Pix.toFixed(2)}<br>
+Cartão: R$ ${total.Cartão.toFixed(2)}<br>
+Dinheiro: R$ ${total.Dinheiro.toFixed(2)}<hr>
+<strong>Total: R$ ${(total.Pix + total.Cartão + total.Dinheiro).toFixed(2)}</strong>`;
 }
 
 renderizar();
