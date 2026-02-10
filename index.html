@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Lanchonete - Controle de Pedidos</title>
+<title>Hamburgueria - Controle de Pedidos</title>
 
 <style>
 body {
@@ -14,9 +14,14 @@ body {
 header {
     background: #222;
     color: #fff;
-    padding: 15px;
     text-align: center;
-    font-size: 20px;
+    padding: 10px;
+}
+
+header img {
+    max-width: 120px;
+    display: block;
+    margin: 0 auto 5px;
 }
 
 nav {
@@ -56,7 +61,20 @@ input, textarea, select, button {
     padding: 10px;
     margin-bottom: 8px;
     border-radius: 5px;
+    display: flex;
+    gap: 10px;
     font-size: 14px;
+}
+
+.pedido-info {
+    flex: 3;
+}
+
+.pedido-actions {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
 .data-titulo {
@@ -65,26 +83,15 @@ input, textarea, select, button {
     background: #ddd;
     padding: 5px;
 }
-
-.actions {
-    display: flex;
-    gap: 5px;
-    margin-top: 5px;
-}
-
-.actions select {
-    flex: 1.5;
-}
-
-.actions button {
-    flex: 1;
-}
 </style>
 </head>
 
 <body>
 
-<header>🍔 Lanchonete - Controle de Pedidos</header>
+<header>
+    <img src="logo.png">
+    <div>🍔 Controle de Pedidos</div>
+</header>
 
 <nav>
     <button onclick="mostrarAba('pedidos')">Pedidos</button>
@@ -120,9 +127,7 @@ input, textarea, select, button {
 <button onclick="adicionarPedido()">Adicionar Pedido</button>
 
 <hr>
-
 <div id="listaPedidos"></div>
-
 </div>
 
 <!-- ENTREGAS -->
@@ -133,7 +138,7 @@ input, textarea, select, button {
 
 <!-- FINANCEIRO -->
 <div id="financeiro" class="section">
-<h3>Financeiro do Dia</h3>
+<h3>Financeiro</h3>
 <div id="financeiroDados"></div>
 </div>
 
@@ -142,6 +147,7 @@ input, textarea, select, button {
 <script>
 let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
 let ultimoNumero = parseInt(localStorage.getItem("ultimoNumeroPedido")) || 0;
+let modoFinanceiro = "dia";
 
 function salvar() {
     localStorage.setItem("pedidos", JSON.stringify(pedidos));
@@ -203,7 +209,7 @@ function imprimirPedido(p) {
     const win = window.open("", "print", "width=300,height=600");
     win.document.write(`
 <pre style="font-family: monospace;">
-LANCHONETE
+HAMBURGUERIA
 ------------------------
 Pedido Nº ${p.numero}
 
@@ -224,27 +230,44 @@ Hora: ${p.hora}
     win.print();
 }
 
-function renderizar() {
-    listaPedidos.innerHTML = "";
+function setFinanceiro(modo) {
+    modoFinanceiro = modo;
+    renderizar();
+}
 
+function mesmaSemana(dataPedido, hoje) {
+    const d1 = new Date(dataPedido);
+    const d2 = new Date(hoje);
+    const inicio = new Date(d2);
+    inicio.setDate(d2.getDate() - d2.getDay());
+    const fim = new Date(inicio);
+    fim.setDate(inicio.getDate() + 6);
+    return d1 >= inicio && d1 <= fim;
+}
+
+function renderizar() {
+    /* PEDIDOS */
+    listaPedidos.innerHTML = "";
     let agrupado = {};
+
     pedidos.forEach((p, i) => {
         if (!agrupado[p.dataISO]) agrupado[p.dataISO] = [];
         agrupado[p.dataISO].push({ ...p, index: i });
     });
 
-    Object.keys(agrupado).reverse().forEach(data => {
+    Object.keys(agrupado).sort().reverse().forEach(data => {
         listaPedidos.innerHTML += `<div class="data-titulo">📅 ${data}</div>`;
         agrupado[data].forEach(p => {
             listaPedidos.innerHTML += `
             <div class="pedido">
-                <strong>#${p.numero} - ${p.cliente}</strong>
-                ${p.descricao}<br>
-                ${p.tipo === "Entrega" ? "📍 " + p.endereco + "<br>" : ""}
-                💰 R$ ${p.valor.toFixed(2)}<br>
-                ⏰ ${p.hora}<br>
-
-                <div class="actions">
+                <div class="pedido-info">
+                    <strong>#${p.numero} - ${p.cliente}</strong><br>
+                    ${p.descricao}<br>
+                    ${p.tipo === "Entrega" ? "📍 " + p.endereco + "<br>" : ""}
+                    💰 R$ ${p.valor.toFixed(2)}<br>
+                    ⏰ ${p.hora}
+                </div>
+                <div class="pedido-actions">
                     <select onchange="alterarStatus(${p.index}, this.value)">
                         <option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
                         <option ${p.status=="Pronto"?"selected":""}>Pronto</option>
@@ -257,26 +280,41 @@ function renderizar() {
         });
     });
 
-    // ENTREGAS
+    /* ENTREGAS */
     listaEntregas.innerHTML = "";
     pedidos.filter(p => p.tipo === "Entrega").forEach(p => {
         listaEntregas.innerHTML += `
         <div class="pedido">
-            <strong>#${p.numero} - ${p.cliente}</strong>
+            <strong>#${p.numero} - ${p.cliente}</strong><br>
             ${p.endereco}<br>
             Status: ${p.status}
         </div>`;
     });
 
-    // FINANCEIRO (somente entregues)
+    /* FINANCEIRO */
+    const hoje = new Date().toISOString().split("T")[0];
     let total = { Pix:0, Cartão:0, Dinheiro:0 };
-    pedidos.filter(p => p.status === "Entregue").forEach(p => total[p.pagamento] += p.valor);
+
+    pedidos.filter(p => p.status === "Entregue").forEach(p => {
+        let incluir = false;
+        if (modoFinanceiro === "dia") incluir = p.dataISO === hoje;
+        if (modoFinanceiro === "semana") incluir = mesmaSemana(p.dataISO, hoje);
+        if (modoFinanceiro === "mes") incluir = p.dataISO.slice(0,7) === hoje.slice(0,7);
+        if (modoFinanceiro === "tudo") incluir = true;
+        if (incluir) total[p.pagamento] += p.valor;
+    });
 
     financeiroDados.innerHTML = `
-Pix: R$ ${total.Pix.toFixed(2)}<br>
-Cartão: R$ ${total.Cartão.toFixed(2)}<br>
-Dinheiro: R$ ${total.Dinheiro.toFixed(2)}<hr>
-<strong>Total: R$ ${(total.Pix + total.Cartão + total.Dinheiro).toFixed(2)}</strong>`;
+    <div style="display:flex; gap:5px; margin-bottom:10px;">
+        <button onclick="setFinanceiro('dia')">Hoje</button>
+        <button onclick="setFinanceiro('semana')">Semana</button>
+        <button onclick="setFinanceiro('mes')">Mês</button>
+        <button onclick="setFinanceiro('tudo')">Tudo</button>
+    </div>
+    Pix: R$ ${total.Pix.toFixed(2)}<br>
+    Cartão: R$ ${total.Cartão.toFixed(2)}<br>
+    Dinheiro: R$ ${total.Dinheiro.toFixed(2)}<hr>
+    <strong>Total: R$ ${(total.Pix + total.Cartão + total.Dinheiro).toFixed(2)}</strong>`;
 }
 
 renderizar();
