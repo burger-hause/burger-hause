@@ -6,33 +6,57 @@
 
 <style>
 body{margin:0;font-family:Arial;background:#f2f2f2;display:flex}
-aside{width:200px;background:#222;color:#fff;min-height:100vh}
-aside img{width:120px;display:block;margin:10px auto}
+aside{width:220px;background:#222;color:#fff;min-height:100vh}
+aside img{width:130px;display:block;margin:15px auto}
 aside button{
 width:100%;padding:12px;border:none;background:none;
-color:#fff;text-align:left;cursor:pointer
+color:#fff;text-align:left;cursor:pointer;font-size:15px
 }
 aside button:hover{background:#444}
+
 main{flex:1;padding:15px}
 .section{display:none}
 .section.active{display:block}
-input,textarea,select,button{width:100%;padding:8px;margin:5px 0}
+
+input,textarea,select,button{
+width:100%;padding:8px;margin:5px 0;box-sizing:border-box
+}
+
 .pedido{
-background:#fff;padding:10px;margin-bottom:8px;
-display:flex;border-radius:6px
+background:#fff;
+padding:10px;
+margin-bottom:10px;
+display:grid;
+grid-template-columns: 1fr 200px;
+gap:10px;
+border-radius:6px;
 }
-.info{flex:1}
+
 .actions{
-width:170px;border-left:1px solid #ddd;
-padding-left:8px;display:flex;flex-direction:column;gap:5px
+display:flex;
+flex-direction:column;
+gap:6px;
 }
+
+.actions button{width:100%}
+
 .item-produto{
-background:#eee;padding:5px;border-radius:4px;margin-bottom:4px
+background:#eee;
+padding:5px;
+border-radius:4px;
+margin-bottom:4px;
 }
+
 .prod-row{
-background:#fff;padding:6px;margin-bottom:5px;display:flex;gap:5px
+background:#fff;
+padding:6px;
+margin-bottom:5px;
+display:flex;
+gap:5px;
 }
 .prod-row input{width:100%}
+
+hr{margin:15px 0}
 </style>
 </head>
 
@@ -50,16 +74,16 @@ background:#fff;padding:6px;margin-bottom:5px;display:flex;gap:5px
 
 <!-- PEDIDOS -->
 <div id="pedidos" class="section active">
-<h3>Novo Pedido</h3>
+<h2>Novo Pedido</h2>
 
-<input id="cliente" placeholder="Cliente">
+<input id="cliente" placeholder="Nome do cliente">
 
 <select id="tipo" onchange="endereco.style.display=this.value=='Entrega'?'block':'none'">
-<option>Local</option>
-<option>Entrega</option>
+<option value="Local">Local</option>
+<option value="Entrega">Entrega</option>
 </select>
 
-<input id="endereco" placeholder="Endereço" style="display:none">
+<input id="endereco" placeholder="Endereço completo" style="display:none">
 
 <input id="buscaProduto" placeholder="Buscar produto" oninput="buscarProduto()">
 <select id="listaBusca"></select>
@@ -67,8 +91,8 @@ background:#fff;padding:6px;margin-bottom:5px;display:flex;gap:5px
 
 <div id="carrinho"></div>
 
-<textarea id="descricao" placeholder="Descrição"></textarea>
-<input id="valor" readonly>
+<textarea id="descricao" placeholder="Descrição do pedido"></textarea>
+<input id="valor" placeholder="Valor total" readonly>
 
 <select id="pagamento">
 <option>Pix</option>
@@ -79,31 +103,33 @@ background:#fff;padding:6px;margin-bottom:5px;display:flex;gap:5px
 <button onclick="salvarPedido()">Salvar Pedido</button>
 
 <hr>
+<h3>Pedidos</h3>
 <div id="listaPedidos"></div>
 </div>
 
 <!-- ENTREGAS -->
 <div id="entregas" class="section">
-<h3>Entregas</h3>
+<h2>Entregas</h2>
 <div id="listaEntregas"></div>
 </div>
 
 <!-- FINANCEIRO -->
 <div id="financeiro" class="section">
-<h3>Financeiro</h3>
+<h2>Financeiro</h2>
 <button onclick="financeiro('dia')">Hoje</button>
 <button onclick="financeiro('semana')">Semana</button>
 <button onclick="financeiro('mes')">Mês</button>
 <button onclick="financeiro('geral')">Geral</button>
+<hr>
 <div id="resumo"></div>
 </div>
 
 <!-- PRODUTOS -->
 <div id="produtos" class="section">
-<h3>Produtos</h3>
-<input id="nomeProd" placeholder="Nome">
+<h2>Produtos</h2>
+<input id="nomeProd" placeholder="Nome do produto">
 <input id="valorProd" type="number" placeholder="Valor">
-<button onclick="addProd()">Adicionar</button>
+<button onclick="addProd()">Adicionar Produto</button>
 <hr>
 <div id="listaProdutos"></div>
 </div>
@@ -111,10 +137,10 @@ background:#fff;padding:6px;margin-bottom:5px;display:flex;gap:5px
 </main>
 
 <script>
-let produtos=JSON.parse(localStorage.getItem("produtos"))||[]
-let pedidos=JSON.parse(localStorage.getItem("pedidos"))||[]
-let carrinho=[]
-let numPedido=localStorage.getItem("numPedido")||1
+let produtos = JSON.parse(localStorage.getItem("produtos")) || []
+let pedidos = JSON.parse(localStorage.getItem("pedidos")) || []
+let carrinho = []
+let numPedido = localStorage.getItem("numPedido") || 1
 
 function abrir(id){
 document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"))
@@ -124,10 +150,12 @@ render()
 
 /* PRODUTOS */
 function addProd(){
+if(!nomeProd.value||!valorProd.value)return
 produtos.push({nome:nomeProd.value,valor:+valorProd.value})
 nomeProd.value="";valorProd.value=""
 save();render()
 }
+
 function renderProdutos(){
 listaProdutos.innerHTML=""
 produtos.forEach((p,i)=>{
@@ -140,24 +168,28 @@ listaProdutos.innerHTML+=`
 })
 }
 
-/* CARRINHO */
+/* BUSCA / CARRINHO */
 function buscarProduto(){
 listaBusca.innerHTML=""
-produtos.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
+produtos
+.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
 .forEach((p,i)=>listaBusca.innerHTML+=`<option value="${i}">${p.nome}</option>`)
 }
+
 function addProduto(){
 let p=produtos[listaBusca.value]
-let i=carrinho.find(x=>x.nome===p.nome)
-i?i.qtd++:carrinho.push({nome:p.nome,valor:p.valor,qtd:1})
+if(!p)return
+let item=carrinho.find(i=>i.nome===p.nome)
+item?item.qtd++:carrinho.push({nome:p.nome,valor:p.valor,qtd:1})
 renderCarrinho()
 }
+
 function renderCarrinho(){
-let t=0,d=[]
+let total=0,desc=[]
 carrinho.innerHTML=""
 carrinho.forEach((p,i)=>{
-t+=p.valor*p.qtd
-d.push(`${p.qtd}x ${p.nome}`)
+total+=p.valor*p.qtd
+desc.push(`${p.qtd}x ${p.nome}`)
 carrinho.innerHTML+=`
 <div class="item-produto">
 ${p.qtd}x ${p.nome}
@@ -165,12 +197,13 @@ ${p.qtd}x ${p.nome}
 <button onclick="p.qtd--;if(p.qtd==0)carrinho.splice(${i},1);renderCarrinho()">-</button>
 </div>`
 })
-descricao.value=d.join(", ")
-valor.value=t.toFixed(2)
+descricao.value=desc.join(", ")
+valor.value=total.toFixed(2)
 }
 
 /* PEDIDOS */
 function salvarPedido(){
+if(!cliente.value||!valor.value)return
 pedidos.push({
 id:numPedido++,
 cliente:cliente.value,
@@ -206,7 +239,7 @@ w.document.write(`
 <img src="logo.png.jpg" style="width:120px"><br>
 <b>Pedido #${p.id}</b><br>
 Cliente: ${p.cliente}<br>
-${p.tipo=="Entrega"?"Endereço: "+p.endereco+"<br>":""}
+${p.tipo==="Entrega"?"Endereço: "+p.endereco+"<br>":""}
 ${p.descricao}<br>
 Valor: R$ ${p.valor.toFixed(2)}<br>
 Pagamento: ${p.pagamento}<br>
@@ -222,10 +255,10 @@ listaEntregas.innerHTML=""
 pedidos.forEach((p,i)=>{
 listaPedidos.innerHTML+=`
 <div class="pedido">
-<div class="info">
-<b>#${p.id}</b> ${p.cliente}<br>
+<div>
+<b>#${p.id}</b> - ${p.cliente}<br>
 ${p.descricao}<br>
-R$ ${p.valor} - ${p.pagamento}<br>
+R$ ${p.valor.toFixed(2)} - ${p.pagamento}<br>
 ${new Date(p.data).toLocaleString()}
 </div>
 <div class="actions">
@@ -239,7 +272,10 @@ ${new Date(p.data).toLocaleString()}
 </div>
 </div>`
 if(p.tipo==="Entrega")
-listaEntregas.innerHTML+=`${p.cliente}<br>${p.endereco}<br>Status: ${p.status}<hr>`
+listaEntregas.innerHTML+=`
+<b>#${p.id}</b> ${p.cliente}<br>
+${p.endereco}<br>
+Status: ${p.status}<hr>`
 })
 renderProdutos()
 }
