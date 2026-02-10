@@ -2,318 +2,310 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>House Artesanal</title>
+<title>Sistema da Lanchonete</title>
 
 <style>
-body{margin:0;font-family:Arial;background:#f4f4f4}
-header{background:#111;color:#fff;padding:15px;text-align:center}
-main{display:flex;height:calc(100vh - 70px)}
-nav{width:220px;background:#222;color:#fff;padding:10px}
-nav button{width:100%;margin-bottom:5px;padding:10px;border:0;background:#444;color:#fff;cursor:pointer}
-section{flex:1;padding:15px;overflow:auto;background:#fff}
-.hidden{display:none}
-table{width:100%;border-collapse:collapse;margin-top:10px}
-th,td{border:1px solid #ccc;padding:6px;text-align:left}
-input,select,button{padding:7px;margin:4px;width:100%}
-button{cursor:pointer}
-.status{font-weight:bold}
+body{margin:0;font-family:Arial;background:#f2f2f2;display:flex}
+aside{width:220px;background:#222;color:#fff;min-height:100vh}
+aside img{width:130px;display:block;margin:15px auto}
+aside button{
+width:100%;padding:12px;border:none;background:none;
+color:#fff;text-align:left;cursor:pointer;font-size:15px
+}
+aside button:hover{background:#444}
+
+main{flex:1;padding:15px}
+.section{display:none}
+.section.active{display:block}
+
+input,textarea,select,button{
+width:100%;padding:8px;margin:5px 0;box-sizing:border-box
+}
+
+.pedido{
+background:#fff;
+padding:10px;
+margin-bottom:10px;
+display:grid;
+grid-template-columns: 1fr 200px;
+gap:10px;
+border-radius:6px;
+}
+
+.actions{
+display:flex;
+flex-direction:column;
+gap:6px;
+}
+
+.actions button{width:100%}
+
+.item-produto{
+background:#eee;
+padding:5px;
+border-radius:4px;
+margin-bottom:4px;
+}
+
+.prod-row{
+background:#fff;
+padding:6px;
+margin-bottom:5px;
+display:flex;
+gap:5px;
+}
+.prod-row input{width:100%}
+
+hr{margin:15px 0}
 </style>
 </head>
 
 <body>
 
-<header>
-<h2>🍔 HOUSE ARTESANAL – SISTEMA DE PEDIDOS</h2>
-</header>
+<aside>
+<img src="logo.png.jpg">
+<button onclick="abrir('pedidos')">Pedidos</button>
+<button onclick="abrir('entregas')">Entregas</button>
+<button onclick="abrir('financeiro')">Financeiro</button>
+<button onclick="abrir('produtos')">Produtos</button>
+</aside>
 
 <main>
-<nav>
-<button onclick="show('pedidos')">Pedidos</button>
-<button onclick="show('clientes')">Clientes</button>
-<button onclick="show('produtos')">Produtos</button>
-<button onclick="show('financeiro')">Financeiro</button>
-</nav>
 
 <!-- PEDIDOS -->
-<section id="pedidos">
-<h3>Novo / Editar Pedido</h3>
+<div id="pedidos" class="section active">
+<h2>Novo Pedido</h2>
 
-<input type="hidden" id="pedidoEditId">
+<input id="cliente" placeholder="Nome do cliente">
 
-🔍 Buscar Cliente:
-<input id="buscaCliente" placeholder="Digite o nome" onkeyup="filtrarClientes()">
-
-Cliente:
-<select id="clientePedido" onchange="preencherCliente()"></select>
-
-Telefone:
-<input id="telPedido" disabled>
-
-Tipo:
-<select id="tipoPedido" onchange="toggleEndereco()">
-<option>Local</option>
-<option>Entrega</option>
+<select id="tipo" onchange="endereco.style.display=this.value=='Entrega'?'block':'none'">
+<option value="Local">Local</option>
+<option value="Entrega">Entrega</option>
 </select>
 
-Endereço:
-<input id="endPedido">
+<input id="endereco" placeholder="Endereço completo" style="display:none">
 
-Produto:
-<select id="produtoPedido"></select>
-<button onclick="addItem()">Adicionar Produto</button>
+<input id="buscaProduto" placeholder="Buscar produto" oninput="buscarProduto()">
+<select id="listaBusca"></select>
+<button onclick="addProduto()">Adicionar Produto</button>
 
-<ul id="itens"></ul>
+<div id="carrinho"></div>
 
-<b>Total: R$ <span id="total">0.00</span></b><br><br>
+<textarea id="descricao" placeholder="Descrição do pedido"></textarea>
+<input id="valor" placeholder="Valor total" readonly>
+
+<select id="pagamento">
+<option>Pix</option>
+<option>Cartão</option>
+<option>Dinheiro</option>
+</select>
 
 <button onclick="salvarPedido()">Salvar Pedido</button>
-<button onclick="salvarPedido(true)">Salvar e Imprimir</button>
 
+<hr>
 <h3>Pedidos</h3>
-<table id="listaPedidos"></table>
-</section>
+<div id="listaPedidos"></div>
+</div>
 
-<!-- CLIENTES -->
-<section id="clientes" class="hidden">
-<h3>Clientes</h3>
-<input id="nomeCli" placeholder="Nome">
-<input id="telCli" placeholder="Telefone">
-<input id="endCli" placeholder="Endereço">
-<button onclick="addCliente()">Salvar Cliente</button>
-<table id="listaClientes"></table>
-</section>
-
-<!-- PRODUTOS -->
-<section id="produtos" class="hidden">
-<h3>Produtos</h3>
-<input id="nomeProd" placeholder="Nome">
-<input id="valorProd" type="number" placeholder="Valor">
-<button onclick="addProduto()">Salvar Produto</button>
-<table id="listaProdutos"></table>
-</section>
+<!-- ENTREGAS -->
+<div id="entregas" class="section">
+<h2>Entregas</h2>
+<div id="listaEntregas"></div>
+</div>
 
 <!-- FINANCEIRO -->
-<section id="financeiro" class="hidden">
-<h3>Financeiro</h3>
-<select id="filtroFinanceiro" onchange="renderFinanceiro()">
-<option value="dia">Hoje</option>
-<option value="semana">Semana</option>
-<option value="mes">Mês</option>
-</select>
-<div id="financeiroDados"></div>
-</section>
+<div id="financeiro" class="section">
+<h2>Financeiro</h2>
+<button onclick="financeiro('dia')">Hoje</button>
+<button onclick="financeiro('semana')">Semana</button>
+<button onclick="financeiro('mes')">Mês</button>
+<button onclick="financeiro('geral')">Geral</button>
+<hr>
+<div id="resumo"></div>
+</div>
+
+<!-- PRODUTOS -->
+<div id="produtos" class="section">
+<h2>Produtos</h2>
+<input id="nomeProd" placeholder="Nome do produto">
+<input id="valorProd" type="number" placeholder="Valor">
+<button onclick="addProd()">Adicionar Produto</button>
+<hr>
+<div id="listaProdutos"></div>
+</div>
 
 </main>
 
 <script>
-let clientes = JSON.parse(localStorage.getItem("clientes")||"[]");
-let produtos = JSON.parse(localStorage.getItem("produtos")||"[]");
-let pedidos = JSON.parse(localStorage.getItem("pedidos")||"[]");
-let itensPedido=[];
+let produtos = JSON.parse(localStorage.getItem("produtos")) || []
+let pedidos = JSON.parse(localStorage.getItem("pedidos")) || []
+let carrinho = []
+let numPedido = localStorage.getItem("numPedido") || 1
 
-function show(id){
-document.querySelectorAll("section").forEach(s=>s.classList.add("hidden"));
-document.getElementById(id).classList.remove("hidden");
-render();
+function abrir(id){
+document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"))
+document.getElementById(id).classList.add("active")
+render()
 }
 
-function addCliente(){
-clientes.push({id:Date.now(),nome:nomeCli.value,tel:telCli.value,end:endCli.value});
-localStorage.setItem("clientes",JSON.stringify(clientes));
-nomeCli.value=telCli.value=endCli.value="";
-render();
+/* PRODUTOS */
+function addProd(){
+if(!nomeProd.value||!valorProd.value)return
+produtos.push({nome:nomeProd.value,valor:+valorProd.value})
+nomeProd.value="";valorProd.value=""
+save();render()
+}
+
+function renderProdutos(){
+listaProdutos.innerHTML=""
+produtos.forEach((p,i)=>{
+listaProdutos.innerHTML+=`
+<div class="prod-row">
+<input value="${p.nome}" onchange="produtos[${i}].nome=this.value;save()">
+<input type="number" value="${p.valor}" onchange="produtos[${i}].valor=+this.value;save()">
+<button onclick="produtos.splice(${i},1);save();render()">🗑️</button>
+</div>`
+})
+}
+
+/* BUSCA / CARRINHO */
+function buscarProduto(){
+listaBusca.innerHTML=""
+produtos
+.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
+.forEach((p,i)=>listaBusca.innerHTML+=`<option value="${i}">${p.nome}</option>`)
 }
 
 function addProduto(){
-produtos.push({id:Date.now(),nome:nomeProd.value,valor:+valorProd.value});
-localStorage.setItem("produtos",JSON.stringify(produtos));
-nomeProd.value=valorProd.value="";
-render();
+let p=produtos[listaBusca.value]
+if(!p)return
+let item=carrinho.find(i=>i.nome===p.nome)
+item?item.qtd++:carrinho.push({nome:p.nome,valor:p.valor,qtd:1})
+renderCarrinho()
 }
 
-function filtrarClientes(){
-let termo = buscaCliente.value.toLowerCase();
-clientePedido.innerHTML="";
-clientes.filter(c=>c.nome.toLowerCase().includes(termo))
-.forEach(c=>clientePedido.innerHTML+=`<option value="${c.id}">${c.nome}</option>`);
-preencherCliente();
+function renderCarrinho(){
+let total=0,desc=[]
+carrinho.innerHTML=""
+carrinho.forEach((p,i)=>{
+total+=p.valor*p.qtd
+desc.push(`${p.qtd}x ${p.nome}`)
+carrinho.innerHTML+=`
+<div class="item-produto">
+${p.qtd}x ${p.nome}
+<button onclick="p.qtd++;renderCarrinho()">+</button>
+<button onclick="p.qtd--;if(p.qtd==0)carrinho.splice(${i},1);renderCarrinho()">-</button>
+</div>`
+})
+descricao.value=desc.join(", ")
+valor.value=total.toFixed(2)
 }
 
-function preencherCliente(){
-let c=clientes.find(c=>c.id==clientePedido.value);
-if(!c) return;
-telPedido.value=c.tel;
-endPedido.value=c.end;
-}
-
-function toggleEndereco(){
-endPedido.style.display = tipoPedido.value=="Entrega"?"block":"none";
-}
-
-function addItem(){
-let p=produtos.find(p=>p.id==produtoPedido.value);
-let i=itensPedido.find(i=>i.id==p.id);
-if(i)i.qtd++; else itensPedido.push({...p,qtd:1});
-renderItens();
-}
-
-function renderItens(){
-itens.innerHTML="";
-let t=0;
-itensPedido.forEach(i=>{
-t+=i.valor*i.qtd;
-itens.innerHTML+=`<li>${i.qtd}x ${i.nome}</li>`;
-});
-total.textContent=t.toFixed(2);
-}
-
-function salvarPedido(imprimir=false){
-let id = pedidoEditId.value || Date.now();
-let c = clientes.find(c=>c.id==clientePedido.value);
-let pedido={
-id,
-cliente:c.nome,
-telefone:c.tel,
-endereco:endPedido.value,
-tipo:tipoPedido.value,
-itens:[...itensPedido],
-valor:+total.textContent,
+/* PEDIDOS */
+function salvarPedido(){
+if(!cliente.value||!valor.value)return
+pedidos.push({
+id:numPedido++,
+cliente:cliente.value,
+descricao:descricao.value,
+valor:+valor.value,
+tipo:tipo.value,
+endereco:endereco.value,
+pagamento:pagamento.value,
 status:"Em preparo",
-data:new Date()
-};
-
-pedidos = pedidos.filter(p=>p.id!=id);
-pedidos.push(pedido);
-localStorage.setItem("pedidos",JSON.stringify(pedidos));
-
-if(imprimir) imprimirPedido(pedido);
-
-pedidoEditId.value="";
-itensPedido=[];
-render();
+data:new Date().toISOString()
+})
+localStorage.setItem("numPedido",numPedido)
+cliente.value="";descricao.value="";valor.value=""
+carrinho=[]
+save();render()
 }
 
-function editarPedido(id){
-let p=pedidos.find(p=>p.id==id);
-pedidoEditId.value=p.id;
-clientePedido.value=clientes.find(c=>c.nome==p.cliente)?.id;
-preencherCliente();
-tipoPedido.value=p.tipo;
-endPedido.value=p.endereco;
-itensPedido=[...p.itens];
-renderItens();
+function statusPedido(i,v){
+pedidos[i].status=v
+save();render()
 }
 
-function mudarStatus(id,valor){
-let p=pedidos.find(p=>p.id==id);
-p.status=valor;
-localStorage.setItem("pedidos",JSON.stringify(pedidos));
-render();
+function excluirPedido(i){
+if(confirm("Excluir este pedido?")){
+pedidos.splice(i,1)
+save();render()
+}
 }
 
-<script>
 function imprimirPedido(p){
-let w = window.open("", "", "width=300,height=600");
-
+let w=window.open("","","width=300")
 w.document.write(`
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Impressão</title>
-<style>
-@media print {
-  body { margin: 0; }
-}
-body{
-  width:58mm;
-  font-family: monospace;
-  font-size:12px;
-}
-hr{
-  border:none;
-  border-top:1px dashed #000;
-}
-.center{text-align:center}
-.right{text-align:right}
-</style>
-</head>
-<body onload="window.print();window.close()">
-
-<div class="center">
-<b>HOUSE ARTESANAL</b><br>
-----------------------<br>
-</div>
-
-Pedido Nº ${p.id}<br>
+<img src="logo.png.jpg" style="width:120px"><br>
+<b>Pedido #${p.id}</b><br>
 Cliente: ${p.cliente}<br>
-${p.tipo=="Entrega" ? "Endereço: "+p.endereco+"<br>" : ""}
-Telefone: ${p.telefone}<br>
-<hr>
-
-${p.itens.map(i=>`${i.qtd}x ${i.nome}<span class="right"> R$ ${(i.qtd*i.valor).toFixed(2)}</span>`).join("<br>")}
-
-<hr>
-<b>Total: R$ ${p.valor.toFixed(2)}</b><br>
-Status: ${p.status}<br>
-<hr>
-
-${new Date(p.data).toLocaleString("pt-BR")}<br>
-
-<div class="center">
-Obrigado pela preferência!
-</div>
-
-</body>
-</html>
-`);
-
-w.document.close();
-}
-</script>
-
-function renderFinanceiro(){
-let hoje=new Date();
-let total=0;
-pedidos.filter(p=>p.status=="Entregue").forEach(p=>{
-let d=new Date(p.data);
-if(filtroFinanceiro.value=="dia" && d.toDateString()==hoje.toDateString()) total+=p.valor;
-if(filtroFinanceiro.value=="semana" && (hoje-d)<=7*86400000) total+=p.valor;
-if(filtroFinanceiro.value=="mes" && d.getMonth()==hoje.getMonth()) total+=p.valor;
-});
-financeiroDados.innerHTML=`<b>Total: R$ ${total.toFixed(2)}</b>`;
+${p.tipo==="Entrega"?"Endereço: "+p.endereco+"<br>":""}
+${p.descricao}<br>
+Valor: R$ ${p.valor.toFixed(2)}<br>
+Pagamento: ${p.pagamento}<br>
+${new Date(p.data).toLocaleString()}
+`)
+w.print()
 }
 
+/* RENDER */
 function render(){
-clientePedido.innerHTML="";
-clientes.forEach(c=>clientePedido.innerHTML+=`<option value="${c.id}">${c.nome}</option>`);
-
-produtoPedido.innerHTML="";
-produtos.forEach(p=>produtoPedido.innerHTML+=`<option value="${p.id}">${p.nome} - R$${p.valor}</option>`);
-
-listaPedidos.innerHTML="<tr><th>Cliente</th><th>Status</th><th>Ações</th></tr>";
-pedidos.forEach(p=>{
+listaPedidos.innerHTML=""
+listaEntregas.innerHTML=""
+pedidos.forEach((p,i)=>{
 listaPedidos.innerHTML+=`
-<tr>
-<td>${p.cliente}</td>
-<td>
-<select onchange="mudarStatus(${p.id},this.value)">
+<div class="pedido">
+<div>
+<b>#${p.id}</b> - ${p.cliente}<br>
+${p.descricao}<br>
+R$ ${p.valor.toFixed(2)} - ${p.pagamento}<br>
+${new Date(p.data).toLocaleString()}
+</div>
+<div class="actions">
+<select onchange="statusPedido(${i},this.value)">
 <option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
 <option ${p.status=="Pronto"?"selected":""}>Pronto</option>
 <option ${p.status=="Entregue"?"selected":""}>Entregue</option>
 </select>
-</td>
-<td>
-<button onclick="editarPedido(${p.id})">✏️</button>
-<button onclick="imprimirPedido(${JSON.stringify(p)})">🖨️</button>
-</td>
-</tr>`;
-});
-
-renderFinanceiro();
+<button onclick="imprimirPedido(pedidos[${i}])">🖨️ Imprimir</button>
+<button onclick="excluirPedido(${i})">🗑️ Excluir</button>
+</div>
+</div>`
+if(p.tipo==="Entrega")
+listaEntregas.innerHTML+=`
+<b>#${p.id}</b> ${p.cliente}<br>
+${p.endereco}<br>
+Status: ${p.status}<hr>`
+})
+renderProdutos()
 }
 
-render();
+/* FINANCEIRO */
+function financeiro(tipo){
+let hoje=new Date()
+let tot={Pix:0,Cartão:0,Dinheiro:0}
+pedidos.filter(p=>p.status==="Entregue").forEach(p=>{
+let d=new Date(p.data)
+let ok=false
+if(tipo==="dia") ok=d.toDateString()===hoje.toDateString()
+if(tipo==="semana") ok=(hoje-d)/86400000<=7
+if(tipo==="mes") ok=d.getMonth()===hoje.getMonth()&&d.getFullYear()===hoje.getFullYear()
+if(tipo==="geral") ok=true
+if(ok) tot[p.pagamento]+=p.valor
+})
+resumo.innerHTML=`
+Pix: R$ ${tot.Pix.toFixed(2)}<br>
+Cartão: R$ ${tot.Cartão.toFixed(2)}<br>
+Dinheiro: R$ ${tot.Dinheiro.toFixed(2)}<br>
+<b>Total: R$ ${(tot.Pix+tot.Cartão+tot.Dinheiro).toFixed(2)}</b>`
+}
+
+function save(){
+localStorage.setItem("produtos",JSON.stringify(produtos))
+localStorage.setItem("pedidos",JSON.stringify(pedidos))
+}
+
+render()
 </script>
 
 </body>
