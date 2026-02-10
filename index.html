@@ -6,7 +6,7 @@
 
 <style>
 body{margin:0;font-family:Arial;background:#f2f2f2;display:flex}
-aside{width:180px;background:#222;color:#fff;min-height:100vh}
+aside{width:200px;background:#222;color:#fff;min-height:100vh}
 aside img{width:120px;display:block;margin:10px auto}
 aside button{
 width:100%;padding:12px;border:none;background:none;
@@ -27,7 +27,10 @@ background:#fff;padding:10px;margin-bottom:8px;
 display:flex;border-radius:6px
 }
 .info{flex:1;font-size:14px}
-.actions{width:120px;border-left:1px solid #ddd;padding-left:8px}
+.actions{
+width:140px;border-left:1px solid #ddd;
+padding-left:8px;display:flex;flex-direction:column;gap:4px
+}
 
 .item-produto{
 background:#eee;padding:5px;border-radius:4px;
@@ -35,6 +38,8 @@ margin-bottom:4px;display:flex;
 justify-content:space-between;align-items:center
 }
 .item-produto button{width:auto;padding:2px 6px}
+
+.filtro button{width:auto;margin-right:5px}
 </style>
 </head>
 
@@ -92,13 +97,19 @@ justify-content:space-between;align-items:center
 
 <!-- FINANCEIRO -->
 <div id="financeiro" class="section">
-<h3>Financeiro (Pedidos Entregues)</h3>
+<h3>Financeiro</h3>
+<div class="filtro">
+<button onclick="calcFinanceiro('dia')">Hoje</button>
+<button onclick="calcFinanceiro('semana')">Semana</button>
+<button onclick="calcFinanceiro('mes')">Mês</button>
+<button onclick="calcFinanceiro('geral')">Geral</button>
+</div>
 <div id="resumo"></div>
 </div>
 
 <!-- PRODUTOS -->
 <div id="produtos" class="section">
-<h3>Cadastro de Produtos</h3>
+<h3>Produtos</h3>
 <input id="nomeProd" placeholder="Nome">
 <input id="valorProd" type="number" placeholder="Valor">
 <button onclick="salvarProduto()">Adicionar</button>
@@ -128,8 +139,7 @@ endereco.style.display=tipo.value==="Entrega"?"block":"none"
 function salvarProduto(){
 produtos.push({nome:nomeProd.value,valor:+valorProd.value})
 nomeProd.value="";valorProd.value=""
-save()
-render()
+save();render()
 }
 
 function buscarProduto(){
@@ -148,12 +158,10 @@ renderCarrinho()
 function renderCarrinho(){
 let total=0,desc=[]
 carrinhoDiv=carrinho
-carrinhoDiv.forEach(p=>{
-total+=p.valor*p.qtd
-desc.push(`${p.qtd}x ${p.nome}`)
-})
 carrinho.innerHTML=""
 carrinhoDiv.forEach((p,i)=>{
+total+=p.valor*p.qtd
+desc.push(`${p.qtd}x ${p.nome}`)
 carrinho.innerHTML+=`
 <div class="item-produto">
 ${p.qtd}x ${p.nome}
@@ -176,7 +184,7 @@ tipo:tipo.value,
 endereco:endereco.value,
 pagamento:pagamento.value,
 status:"Em preparo",
-data:new Date().toLocaleString()
+data:new Date()
 })
 localStorage.setItem("numPedido",numPedido)
 cliente.value="";descricao.value="";valor.value=""
@@ -184,11 +192,23 @@ carrinho=[]
 save();render()
 }
 
+function imprimir(p){
+let w=window.open("","print")
+w.document.write(`
+<img src="logo.png.jpg" width="120"><br>
+Pedido #${p.id}<br>
+Cliente: ${p.cliente}<br>
+${p.descricao}<br>
+Valor: R$ ${p.valor}<br>
+${p.tipo==="Entrega"?"Endereço: "+p.endereco:""}<br>
+${new Date(p.data).toLocaleString()}
+`)
+w.print()
+}
+
 function render(){
 listaPedidos.innerHTML=""
 listaEntregas.innerHTML=""
-let tot={Pix:0,Cartão:0,Dinheiro:0}
-
 pedidos.forEach((p,i)=>{
 listaPedidos.innerHTML+=`
 <div class="pedido">
@@ -197,7 +217,7 @@ listaPedidos.innerHTML+=`
 ${p.descricao}<br>
 R$ ${p.valor} | ${p.pagamento}<br>
 ${p.tipo==="Entrega"?p.endereco:""}<br>
-${p.data}
+${new Date(p.data).toLocaleString()}
 </div>
 <div class="actions">
 <select onchange="p.status=this.value;save();render()">
@@ -205,17 +225,34 @@ ${p.data}
 <option ${p.status=="Pronto"?"selected":""}>Pronto</option>
 <option ${p.status=="Entregue"?"selected":""}>Entregue</option>
 </select>
+<button onclick="imprimir(p)">Imprimir</button>
 <button onclick="pedidos.splice(${i},1);save();render()">Excluir</button>
 </div>
 </div>`
 
 if(p.tipo==="Entrega")
-listaEntregas.innerHTML+=`#${p.id} - ${p.cliente}<br>${p.endereco}<br>${p.status}<hr>`
+listaEntregas.innerHTML+=`#${p.id} - ${p.cliente}<br>${p.endereco}<br>Status: ${p.status}<hr>`
+})
+}
 
-if(p.status==="Entregue") tot[p.pagamento]+=p.valor
+function calcFinanceiro(tipo){
+let hoje=new Date()
+let tot={Pix:0,Cartão:0,Dinheiro:0}
+
+pedidos.filter(p=>p.status==="Entregue").forEach(p=>{
+let d=new Date(p.data)
+let ok=false
+if(tipo==="dia") ok=d.toDateString()===hoje.toDateString()
+if(tipo==="semana") ok=(hoje-d)/86400000<=7
+if(tipo==="mes") ok=d.getMonth()===hoje.getMonth()
+if(tipo==="geral") ok=true
+if(ok) tot[p.pagamento]+=p.valor
 })
 
-resumo.innerHTML=`Pix: R$ ${tot.Pix}<br>Cartão: R$ ${tot.Cartão}<br>Dinheiro: R$ ${tot.Dinheiro}<br><b>Total: R$ ${(tot.Pix+tot.Cartão+tot.Dinheiro).toFixed(2)}</b>`
+resumo.innerHTML=`Pix: R$ ${tot.Pix}<br>
+Cartão: R$ ${tot.Cartão}<br>
+Dinheiro: R$ ${tot.Dinheiro}<br>
+<b>Total: R$ ${(tot.Pix+tot.Cartão+tot.Dinheiro).toFixed(2)}</b>`
 }
 
 function save(){
