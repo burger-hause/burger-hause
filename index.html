@@ -5,64 +5,69 @@
 <title>Controle da Lanchonete</title>
 
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:#f2f2f2;}
+body{margin:0;font-family:Arial;background:#f2f2f2;}
 header{background:#222;color:#fff;text-align:center;padding:10px;}
 header img{max-width:120px;display:block;margin:0 auto 5px;}
 nav{display:flex;background:#333;}
-nav button{flex:1;padding:12px;border:none;background:none;color:#fff;cursor:pointer;}
+nav button{flex:1;padding:12px;border:none;background:none;color:#fff;color:#fff;cursor:pointer;}
 nav button:hover{background:#444;}
 .container{padding:15px;}
 .section{display:none;}
 .section.active{display:block;}
 input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:border-box;}
 
-.pedido{background:#fff;border-radius:5px;padding:10px;margin-bottom:8px;display:flex;gap:10px;}
+.pedido{background:#fff;padding:10px;border-radius:5px;margin-bottom:8px;display:flex;}
 .pedido-info{flex:1;font-size:14px;}
 .pedido-actions{width:120px;display:flex;flex-direction:column;gap:6px;border-left:1px solid #ddd;padding-left:8px;}
-.data-titulo{background:#ddd;padding:5px;margin-top:15px;font-weight:bold;}
 
-.produto-item{display:flex;justify-content:space-between;align-items:center;font-size:14px;}
+.item-produto{display:flex;justify-content:space-between;align-items:center;background:#eee;padding:5px;border-radius:4px;margin-bottom:4px;font-size:14px;}
+.item-produto button{width:auto;padding:3px 6px;}
+
+.data-titulo{background:#ddd;padding:5px;margin-top:15px;font-weight:bold;}
 </style>
 </head>
 
 <body>
 
 <header>
-    <img src="logo.png.jpg">
-    <h2>Controle da Lanchonete</h2>
+<img src="logo.png.jpg">
+<h2>Controle da Lanchonete</h2>
 </header>
 
 <nav>
-    <button onclick="abrirAba('pedidos')">Pedidos</button>
-    <button onclick="abrirAba('produtos')">Produtos</button>
-    <button onclick="abrirAba('entregas')">Entregas</button>
-    <button onclick="abrirAba('financeiro')">Financeiro</button>
+<button onclick="abrirAba('pedidos')">Pedidos</button>
+<button onclick="abrirAba('produtos')">Produtos</button>
+<button onclick="abrirAba('entregas')">Entregas</button>
+<button onclick="abrirAba('financeiro')">Financeiro</button>
 </nav>
 
 <div class="container">
 
 <!-- PEDIDOS -->
 <div id="pedidos" class="section active">
-
 <h3>Novo Pedido</h3>
 
 <input id="cliente" placeholder="Nome do cliente">
 
-<div id="listaProdutosPedido"></div>
+<input id="buscaProduto" placeholder="Pesquisar produto" oninput="filtrarProdutos()">
+<select id="resultadoBusca"></select>
+<button onclick="adicionarProdutoPedido()">Adicionar Produto</button>
+
+<div id="produtosSelecionados"></div>
 
 <textarea id="descricao" placeholder="Descrição do pedido"></textarea>
 
-<select id="tipo" onchange="mostrarEndereco()">
-    <option value="Local">Local</option>
-    <option value="Entrega">Entrega</option>
+<select id="tipo" onchange="endereco.style.display=this.value==='Entrega'?'block':'none'">
+<option>Local</option>
+<option>Entrega</option>
 </select>
 
-<textarea id="endereco" placeholder="Endereço completo" style="display:none;"></textarea>
+<textarea id="endereco" placeholder="Endereço" style="display:none;"></textarea>
 
 <select id="pagamento">
-    <option value="Pix">Pix</option>
-    <option value="Cartão">Cartão</option>
-    <option value="Dinheiro">Dinheiro</option>
+<option>Pix</option>
+<option>Cartão</option>
+<option>Dinheiro</option>
 </select>
 
 <input id="valor" type="number" placeholder="Valor total">
@@ -75,31 +80,27 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:bord
 
 <!-- PRODUTOS -->
 <div id="produtos" class="section">
-
 <h3>Cadastrar Produto</h3>
 <input id="nomeProduto" placeholder="Nome do produto">
 <input id="valorProduto" type="number" placeholder="Valor">
 <button onclick="adicionarProduto()">Adicionar Produto</button>
-
 <hr>
-<h3>Produtos Cadastrados</h3>
-<div id="listaProdutosCadastro"></div>
-
+<div id="listaProdutos"></div>
 </div>
 
 <!-- ENTREGAS -->
 <div id="entregas" class="section">
-<h3>Pedidos para Entrega</h3>
+<h3>Entregas</h3>
 <div id="listaEntregas"></div>
 </div>
 
 <!-- FINANCEIRO -->
 <div id="financeiro" class="section">
 <h3>Financeiro</h3>
-<button onclick="setFiltro('dia')">Hoje</button>
-<button onclick="setFiltro('semana')">Semana</button>
-<button onclick="setFiltro('mes')">Mês</button>
-<button onclick="setFiltro('tudo')">Histórico</button>
+<button onclick="filtro='dia';renderizar()">Hoje</button>
+<button onclick="filtro='semana';renderizar()">Semana</button>
+<button onclick="filtro='mes';renderizar()">Mês</button>
+<button onclick="filtro='tudo';renderizar()">Tudo</button>
 <div id="financeiroDados"></div>
 </div>
 
@@ -108,182 +109,108 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:bord
 <script>
 let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
 let produtos = JSON.parse(localStorage.getItem("produtos")) || [];
-let ultimoNumero = parseInt(localStorage.getItem("ultimoNumero")) || 0;
-let filtroFinanceiro = "dia";
+let ultimo = +localStorage.getItem("ultimo") || 0;
+let filtro = "dia";
+let carrinho = [];
 
 function salvar(){
-    localStorage.setItem("pedidos",JSON.stringify(pedidos));
-    localStorage.setItem("produtos",JSON.stringify(produtos));
-    localStorage.setItem("ultimoNumero",ultimoNumero);
+localStorage.setItem("pedidos",JSON.stringify(pedidos));
+localStorage.setItem("produtos",JSON.stringify(produtos));
+localStorage.setItem("ultimo",ultimo);
 }
 
 function abrirAba(id){
-    document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-    document.getElementById(id).classList.add("active");
-    renderizar();
-}
-
-function mostrarEndereco(){
-    endereco.style.display = tipo.value==="Entrega"?"block":"none";
+document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+renderizar();
 }
 
 /* PRODUTOS */
 function adicionarProduto(){
-    if(!nomeProduto.value||!valorProduto.value) return alert("Preencha tudo");
-    produtos.push({nome:nomeProduto.value,valor:parseFloat(valorProduto.value)});
-    nomeProduto.value="";valorProduto.value="";
-    salvar();renderizar();
+if(!nomeProduto.value||!valorProduto.value)return;
+produtos.push({nome:nomeProduto.value,valor:+valorProduto.value});
+nomeProduto.value="";valorProduto.value="";
+salvar();renderizar();
 }
-
 function removerProduto(i){
-    if(confirm("Remover produto?")){
-        produtos.splice(i,1);
-        salvar();renderizar();
-    }
+produtos.splice(i,1);salvar();renderizar();
 }
 
-function renderizarProdutos(){
-    listaProdutosPedido.innerHTML="<strong>Selecione os produtos:</strong>";
-    listaProdutosCadastro.innerHTML="";
-
-    produtos.forEach((p,i)=>{
-        listaProdutosPedido.innerHTML+=`
-        <label>
-            <input type="checkbox" onchange="calcularPedido()">
-            ${p.nome} - R$ ${p.valor.toFixed(2)}
-        </label><br>`;
-
-        listaProdutosCadastro.innerHTML+=`
-        <div class="produto-item">
-            ${p.nome} - R$ ${p.valor.toFixed(2)}
-            <button onclick="removerProduto(${i})">Excluir</button>
-        </div>`;
-    });
+/* BUSCA */
+function filtrarProdutos(){
+resultadoBusca.innerHTML="";
+produtos.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
+.forEach((p,i)=>{
+resultadoBusca.innerHTML+=`<option value="${i}">${p.nome} - R$ ${p.valor.toFixed(2)}</option>`;
+});
 }
 
-function calcularPedido(){
-    let total=0, desc=[];
-    document.querySelectorAll("#listaProdutosPedido input").forEach((c,i)=>{
-        if(c.checked){
-            total+=produtos[i].valor;
-            desc.push(produtos[i].nome);
-        }
-    });
-    descricao.value=desc.join(", ");
-    valor.value=total.toFixed(2);
+function adicionarProdutoPedido(){
+let i = resultadoBusca.value;
+if(i==="") return;
+
+let existente = carrinho.find(p=>p.nome===produtos[i].nome);
+if(existente){
+existente.qtd++;
+}else{
+carrinho.push({nome:produtos[i].nome,valor:produtos[i].valor,qtd:1});
+}
+atualizarCarrinho();
+}
+
+function atualizarCarrinho(){
+let total=0;
+let desc=[];
+produtosSelecionados.innerHTML="";
+
+carrinho.forEach((p,i)=>{
+total+=p.valor*p.qtd;
+desc.push(`${p.nome} x${p.qtd}`);
+
+produtosSelecionados.innerHTML+=`
+<div class="item-produto">
+${p.nome} x${p.qtd} - R$ ${(p.valor*p.qtd).toFixed(2)}
+<div>
+<button onclick="p.qtd++;atualizarCarrinho()">+</button>
+<button onclick="p.qtd--;if(p.qtd<=0)carrinho.splice(${i},1);atualizarCarrinho()">-</button>
+</div>
+</div>`;
+});
+
+descricao.value=desc.join(", ");
+valor.value=total.toFixed(2);
 }
 
 /* PEDIDOS */
 function adicionarPedido(){
-    if(!cliente.value||!descricao.value||!valor.value) return alert("Preencha tudo");
-    const agora=new Date();ultimoNumero++;
+if(!cliente.value||!descricao.value||!valor.value)return;
+ultimo++;
+let d=new Date();
 
-    pedidos.push({
-        numero:ultimoNumero,
-        cliente:cliente.value,
-        descricao:descricao.value,
-        tipo:tipo.value,
-        endereco:endereco.value,
-        pagamento:pagamento.value,
-        valor:parseFloat(valor.value),
-        data:agora.toISOString().split("T")[0],
-        hora:agora.toLocaleTimeString(),
-        status:"Em preparo"
-    });
+pedidos.push({
+numero:ultimo,
+cliente:cliente.value,
+descricao:descricao.value,
+tipo:tipo.value,
+endereco:endereco.value,
+pagamento:pagamento.value,
+valor:+valor.value,
+data:d.toISOString().split("T")[0],
+hora:d.toLocaleTimeString(),
+status:"Em preparo"
+});
 
-    salvar();
-    cliente.value="";descricao.value="";valor.value="";endereco.value="";
-    document.querySelectorAll("#listaProdutosPedido input").forEach(c=>c.checked=false);
-    renderizar();
+cliente.value="";descricao.value="";valor.value="";endereco.value="";
+carrinho=[];
+salvar();renderizar();
 }
 
-function alterarStatus(i,s){pedidos[i].status=s;salvar();renderizar();}
-function excluirPedido(i){if(confirm("Excluir pedido?")){pedidos.splice(i,1);salvar();renderizar();}}
-
-function imprimirPedido(p){
-    const w=window.open("","","width=300,height=600");
-    w.document.write(`<pre>
-PEDIDO Nº ${p.numero}
-Cliente: ${p.cliente}
-
-${p.descricao}
-
-${p.tipo==="Entrega"?"Endereço:\n"+p.endereco:"Local"}
-
-Pagamento: ${p.pagamento}
-Valor: R$ ${p.valor.toFixed(2)}
-Data: ${p.data} ${p.hora}
-</pre>`);
-    w.document.close();w.print();
-}
-
-/* FINANCEIRO */
-function setFiltro(f){filtroFinanceiro=f;renderizar();}
-function mesmaSemana(d){
-    const h=new Date(),x=new Date(d);
-    const i=new Date(h);i.setDate(h.getDate()-h.getDay());
-    const f=new Date(i);f.setDate(i.getDate()+6);
-    return x>=i&&x<=f;
-}
-
+/* RENDER */
 function renderizar(){
-    renderizarProdutos();
-
-    listaPedidos.innerHTML="";
-    let porData={};
-    pedidos.forEach((p,i)=>{
-        if(!porData[p.data]) porData[p.data]=[];
-        porData[p.data].push({...p,index:i});
-    });
-
-    Object.keys(porData).sort().reverse().forEach(d=>{
-        listaPedidos.innerHTML+=`<div class="data-titulo">${d}</div>`;
-        porData[d].forEach(p=>{
-            listaPedidos.innerHTML+=`
-            <div class="pedido">
-                <div class="pedido-info">
-                    <strong>#${p.numero} - ${p.cliente}</strong><br>
-                    ${p.descricao}<br>
-                    ${p.tipo==="Entrega"?"📍 "+p.endereco+"<br>":""}
-                    💰 R$ ${p.valor.toFixed(2)}<br>
-                    ⏰ ${p.hora}
-                </div>
-                <div class="pedido-actions">
-                    <select onchange="alterarStatus(${p.index},this.value)">
-                        <option ${p.status==="Em preparo"?"selected":""}>Em preparo</option>
-                        <option ${p.status==="Pronto"?"selected":""}>Pronto</option>
-                        <option ${p.status==="Entregue"?"selected":""}>Entregue</option>
-                    </select>
-                    <button onclick="imprimirPedido(pedidos[${p.index}])">Imprimir</button>
-                    <button onclick="excluirPedido(${p.index})">Excluir</button>
-                </div>
-            </div>`;
-        });
-    });
-
-    listaEntregas.innerHTML="";
-    pedidos.filter(p=>p.tipo==="Entrega").forEach(p=>{
-        listaEntregas.innerHTML+=`<div class="pedido"><div class="pedido-info">
-        <strong>#${p.numero} - ${p.cliente}</strong><br>${p.endereco}<br>Status: ${p.status}
-        </div></div>`;
-    });
-
-    let total={Pix:0,Cartão:0,Dinheiro:0};
-    const hoje=new Date().toISOString().split("T")[0];
-
-    pedidos.filter(p=>p.status==="Entregue").forEach(p=>{
-        let ok=false;
-        if(filtroFinanceiro==="dia") ok=p.data===hoje;
-        if(filtroFinanceiro==="semana") ok=mesmaSemana(p.data);
-        if(filtroFinanceiro==="mes") ok=p.data.slice(0,7)===hoje.slice(0,7);
-        if(filtroFinanceiro==="tudo") ok=true;
-        if(ok) total[p.pagamento]+=p.valor;
-    });
-
-    financeiroDados.innerHTML=`Pix: R$ ${total.Pix.toFixed(2)}<br>
-    Cartão: R$ ${total.Cartão.toFixed(2)}<br>
-    Dinheiro: R$ ${total.Dinheiro.toFixed(2)}<hr>
-    <strong>Total: R$ ${(total.Pix+total.Cartão+total.Dinheiro).toFixed(2)}</strong>`;
+listaProdutos.innerHTML="";
+produtos.forEach((p,i)=>{
+listaProdutos.innerHTML+=`${p.nome} - R$ ${p.valor.toFixed(2)} <button onclick="removerProduto(${i})">Excluir</button><br>`;
+});
 }
 
 renderizar();
