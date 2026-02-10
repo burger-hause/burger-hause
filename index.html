@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Controle da Lanchonete</title>
+<title>Sistema da Lanchonete</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#f2f2f2;}
@@ -14,20 +14,50 @@ nav button:hover{background:#444;}
 .container{padding:15px;}
 .section{display:none;}
 .section.active{display:block;}
-input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:border-box;}
+
+input,textarea,select,button{
+width:100%;
+padding:8px;
+margin:5px 0;
+box-sizing:border-box;
+}
+
+.pedido{
+background:#fff;
+padding:10px;
+border-radius:6px;
+margin-bottom:8px;
+display:flex;
+}
+
+.pedido-info{flex:1;font-size:14px;}
+.pedido-actions{
+width:130px;
+display:flex;
+flex-direction:column;
+gap:6px;
+border-left:1px solid #ddd;
+padding-left:8px;
+}
 
 .item-produto{
-  background:#eee;
-  padding:6px;
-  border-radius:4px;
-  margin-bottom:5px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  font-size:14px;
+background:#eee;
+padding:5px;
+border-radius:4px;
+margin-bottom:4px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+font-size:14px;
 }
 .item-produto button{width:auto;padding:2px 6px;}
 
+.data-titulo{
+background:#ddd;
+padding:5px;
+margin-top:15px;
+font-weight:bold;
+}
 </style>
 </head>
 
@@ -35,18 +65,21 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:bord
 
 <header>
 <img src="logo.png.jpg">
-<h2>Controle da Lanchonete</h2>
+<h2>Sistema da Lanchonete</h2>
 </header>
 
 <nav>
 <button onclick="abrirAba('pedidos')">Pedidos</button>
 <button onclick="abrirAba('produtos')">Produtos</button>
+<button onclick="abrirAba('entregas')">Entregas</button>
+<button onclick="abrirAba('financeiro')">Financeiro</button>
 </nav>
 
 <div class="container">
 
 <!-- PEDIDOS -->
 <div id="pedidos" class="section active">
+
 <h3>Novo Pedido</h3>
 
 <input id="cliente" placeholder="Nome do cliente">
@@ -58,9 +91,26 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:bord
 <div id="listaCarrinho"></div>
 
 <textarea id="descricao" placeholder="Descrição do pedido"></textarea>
+
+<select id="tipo" onchange="endereco.style.display=this.value==='Entrega'?'block':'none'">
+<option>Local</option>
+<option>Entrega</option>
+</select>
+
+<textarea id="endereco" placeholder="Endereço" style="display:none;"></textarea>
+
+<select id="pagamento">
+<option>Pix</option>
+<option>Cartão</option>
+<option>Dinheiro</option>
+</select>
+
 <input id="valor" type="number" placeholder="Valor total">
 
-<button onclick="salvarPedido()">Salvar Pedido</button>
+<button onclick="adicionarPedido()">Adicionar Pedido</button>
+
+<hr>
+<div id="listaPedidos"></div>
 </div>
 
 <!-- PRODUTOS -->
@@ -68,9 +118,25 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:bord
 <h3>Cadastrar Produto</h3>
 <input id="nomeProduto" placeholder="Nome do produto">
 <input id="valorProduto" type="number" placeholder="Valor">
-<button onclick="adicionarProduto()">Adicionar</button>
+<button onclick="adicionarProduto()">Adicionar Produto</button>
 <hr>
 <div id="listaProdutos"></div>
+</div>
+
+<!-- ENTREGAS -->
+<div id="entregas" class="section">
+<h3>Pedidos para Entrega</h3>
+<div id="listaEntregas"></div>
+</div>
+
+<!-- FINANCEIRO -->
+<div id="financeiro" class="section">
+<h3>Financeiro</h3>
+<button onclick="filtro='dia';renderizar()">Hoje</button>
+<button onclick="filtro='semana';renderizar()">Semana</button>
+<button onclick="filtro='mes';renderizar()">Mês</button>
+<button onclick="filtro='tudo';renderizar()">Histórico</button>
+<div id="financeiroDados"></div>
 </div>
 
 </div>
@@ -78,28 +144,35 @@ input,textarea,select,button{width:100%;padding:8px;margin:5px 0;box-sizing:bord
 <script>
 let produtos = JSON.parse(localStorage.getItem("produtos")) || [];
 let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
+let ultimoNumero = +localStorage.getItem("ultimoNumero") || 0;
 let carrinho = [];
+let filtro = "dia";
+
+function salvar(){
+localStorage.setItem("produtos",JSON.stringify(produtos));
+localStorage.setItem("pedidos",JSON.stringify(pedidos));
+localStorage.setItem("ultimoNumero",ultimoNumero);
+}
 
 function abrirAba(id){
 document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
 document.getElementById(id).classList.add("active");
-renderizarProdutos();
+renderizar();
 }
 
 /* PRODUTOS */
 function adicionarProduto(){
-if(!nomeProduto.value || !valorProduto.value) return;
+if(!nomeProduto.value||!valorProduto.value)return;
 produtos.push({nome:nomeProduto.value,valor:+valorProduto.value});
 nomeProduto.value="";valorProduto.value="";
-salvar();renderizarProdutos();
+salvar();renderizar();
 }
 
-function renderizarProdutos(){
-listaProdutos.innerHTML="";
-produtos.forEach((p,i)=>{
-listaProdutos.innerHTML+=`${p.nome} - R$ ${p.valor.toFixed(2)}
-<button onclick="produtos.splice(${i},1);salvar();renderizarProdutos()">Excluir</button><br>`;
-});
+function removerProduto(i){
+if(confirm("Excluir produto?")){
+produtos.splice(i,1);
+salvar();renderizar();
+}
 }
 
 /* BUSCA */
@@ -126,15 +199,15 @@ atualizarCarrinho();
 }
 
 function atualizarCarrinho(){
-let total = 0;
-let desc = [];
+let total=0;
+let desc=[];
 listaCarrinho.innerHTML="";
 
 carrinho.forEach((p,i)=>{
-total += p.valor * p.qtd;
+total+=p.valor*p.qtd;
 desc.push(`${p.qtd}x ${p.nome}`);
 
-listaCarrinho.innerHTML += `
+listaCarrinho.innerHTML+=`
 <div class="item-produto">
 ${p.qtd}x ${p.nome} - R$ ${(p.valor*p.qtd).toFixed(2)}
 <div>
@@ -144,32 +217,78 @@ ${p.qtd}x ${p.nome} - R$ ${(p.valor*p.qtd).toFixed(2)}
 </div>`;
 });
 
-descricao.value = desc.join(", ");
-valor.value = total.toFixed(2);
+descricao.value=desc.join(", ");
+valor.value=total.toFixed(2);
 }
 
-/* PEDIDO */
-function salvarPedido(){
-if(!cliente.value || carrinho.length===0) return alert("Pedido incompleto");
+/* PEDIDOS */
+function adicionarPedido(){
+if(!cliente.value||carrinho.length===0)return alert("Pedido incompleto");
+ultimoNumero++;
+let d=new Date();
+
 pedidos.push({
+numero:ultimoNumero,
 cliente:cliente.value,
 descricao:descricao.value,
+tipo:tipo.value,
+endereco:endereco.value,
+pagamento:pagamento.value,
 valor:+valor.value,
-data:new Date().toLocaleString()
+data:d.toISOString().split("T")[0],
+hora:d.toLocaleTimeString(),
+status:"Em preparo"
 });
-cliente.value="";descricao.value="";valor.value="";
+
+cliente.value="";descricao.value="";valor.value="";endereco.value="";
 carrinho=[];
-salvar();
-alert("Pedido salvo");
+salvar();renderizar();
 }
 
-function salvar(){
-localStorage.setItem("produtos",JSON.stringify(produtos));
-localStorage.setItem("pedidos",JSON.stringify(pedidos));
+function alterarStatus(i,s){
+pedidos[i].status=s;
+salvar();renderizar();
 }
 
-renderizarProdutos();
-</script>
+function excluirPedido(i){
+if(confirm("Excluir pedido?")){
+pedidos.splice(i,1);
+salvar();renderizar();
+}
+}
 
-</body>
-</html>
+function imprimirPedido(p){
+let w=window.open("","","width=300,height=600");
+w.document.write(`<pre>
+PEDIDO Nº ${p.numero}
+Cliente: ${p.cliente}
+
+${p.descricao}
+
+${p.tipo==="Entrega"?"Endereço:\n"+p.endereco:"Local"}
+
+Pagamento: ${p.pagamento}
+Valor: R$ ${p.valor.toFixed(2)}
+Data: ${p.data} ${p.hora}
+</pre>`);
+w.document.close();
+w.print();
+}
+
+/* FINANCEIRO */
+function mesmaSemana(d){
+let h=new Date(),x=new Date(d);
+let i=new Date(h);i.setDate(h.getDate()-h.getDay());
+let f=new Date(i);f.setDate(i.getDate()+6);
+return x>=i&&x<=f;
+}
+
+function renderizar(){
+/* produtos */
+listaProdutos.innerHTML="";
+produtos.forEach((p,i)=>{
+listaProdutos.innerHTML+=`${p.nome} - R$ ${p.valor.toFixed(2)}
+<button onclick="removerProduto(${i})">Excluir</button><br>`;
+});
+
+/* ped*
