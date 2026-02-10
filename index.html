@@ -110,6 +110,12 @@ input, textarea, select, button{
 <h3>Novo Pedido</h3>
 
 <input id="cliente" placeholder="Nome do cliente">
+
+<!-- PRODUTOS -->
+<select id="produto" onchange="selecionarProduto()">
+    <option value="">Selecione um produto</option>
+</select>
+
 <textarea id="descricao" placeholder="Descrição do pedido"></textarea>
 
 <select id="tipo" onchange="mostrarEndereco()">
@@ -156,9 +162,31 @@ input, textarea, select, button{
 </div>
 
 <script>
+/* ===== PRODUTOS CADASTRADOS ===== */
+const produtos = [
+    { nome: "X-Burger", valor: 15 },
+    { nome: "X-Salada", valor: 18 },
+    { nome: "X-Bacon", valor: 22 },
+    { nome: "Refrigerante", valor: 6 },
+    { nome: "Batata Frita", valor: 10 }
+];
+
+/* ===== SISTEMA ===== */
 let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
 let ultimoNumero = parseInt(localStorage.getItem("ultimoNumero")) || 0;
 let filtroFinanceiro = "dia";
+
+/* carregar produtos */
+produtos.forEach((p,i)=>{
+    produto.innerHTML += `<option value="${i}">${p.nome} - R$ ${p.valor}</option>`;
+});
+
+function selecionarProduto(){
+    if(produto.value==="") return;
+    const p = produtos[produto.value];
+    descricao.value = p.nome;
+    valor.value = p.valor;
+}
 
 function salvar(){
     localStorage.setItem("pedidos", JSON.stringify(pedidos));
@@ -202,6 +230,7 @@ function adicionarPedido(){
     descricao.value="";
     endereco.value="";
     valor.value="";
+    produto.value="";
     renderizar();
 }
 
@@ -258,7 +287,6 @@ function mesmaSemana(data){
 }
 
 function renderizar(){
-    /* PEDIDOS */
     listaPedidos.innerHTML="";
     let porData={};
 
@@ -292,7 +320,6 @@ function renderizar(){
         });
     });
 
-    /* ENTREGAS */
     listaEntregas.innerHTML="";
     pedidos.filter(p=>p.tipo==="Entrega").forEach(p=>{
         listaEntregas.innerHTML+=`
@@ -305,7 +332,6 @@ function renderizar(){
         </div>`;
     });
 
-    /* FINANCEIRO */
     let total={Pix:0,Cartão:0,Dinheiro:0};
     const hoje=new Date().toISOString().split("T")[0];
 
@@ -331,4 +357,3 @@ renderizar();
 
 </body>
 </html>
-
