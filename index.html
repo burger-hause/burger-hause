@@ -2,101 +2,89 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Hamburgueria - Controle de Pedidos</title>
+<title>Controle da Lanchonete</title>
 
 <style>
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    background: #f4f4f4;
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#f2f2f2;
 }
 
-/* TOPO */
-header {
-    background: #222;
-    color: #fff;
-    text-align: center;
-    padding: 10px;
+header{
+    background:#222;
+    color:#fff;
+    text-align:center;
+    padding:10px;
 }
 
-header img {
-    max-width: 120px;
-    display: block;
-    margin: 0 auto 5px;
+header img{
+    max-width:120px;
+    display:block;
+    margin:0 auto 5px;
 }
 
-/* MENU SUPERIOR */
-nav {
-    display: flex;
-    background: #333;
+nav{
+    display:flex;
+    background:#333;
 }
 
-nav button {
-    flex: 1;
-    padding: 12px;
-    background: none;
-    border: none;
-    color: #fff;
-    cursor: pointer;
+nav button{
+    flex:1;
+    padding:12px;
+    border:none;
+    background:none;
+    color:#fff;
+    cursor:pointer;
 }
 
-nav button:hover {
-    background: #444;
+nav button:hover{
+    background:#444;
 }
 
-.container {
-    padding: 15px;
+.container{
+    padding:15px;
 }
 
-.section { display: none; }
-.section.active { display: block; }
+.section{display:none;}
+.section.active{display:block;}
 
-input, textarea, select, button {
-    width: 100%;
-    padding: 8px;
-    margin: 5px 0;
-    box-sizing: border-box;
+input, textarea, select, button{
+    width:100%;
+    padding:8px;
+    margin:5px 0;
+    box-sizing:border-box;
 }
 
-/* ===== CARD DO PEDIDO ===== */
-.pedido {
-    background: #fff;
-    padding: 10px;
-    margin-bottom: 8px;
-    border-radius: 5px;
-    display: flex;
-    align-items: stretch;
-    gap: 10px;
-    font-size: 14px;
+/* CARD DO PEDIDO */
+.pedido{
+    background:#fff;
+    border-radius:5px;
+    padding:10px;
+    margin-bottom:8px;
+    display:flex;
+    gap:10px;
 }
 
-/* CONTEÚDO À ESQUERDA */
-.pedido-info {
-    flex: 1;
+.pedido-info{
+    flex:1;
+    font-size:14px;
 }
 
-/* BOTÕES NA LATERAL DIREITA */
-.pedido-actions {
-    width: 110px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    justify-content: center;
-    border-left: 1px solid #ddd;
-    padding-left: 8px;
+.pedido-actions{
+    width:120px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    border-left:1px solid #ddd;
+    padding-left:8px;
 }
 
-.pedido-actions select,
-.pedido-actions button {
-    font-size: 13px;
-}
-
-/* AGRUPADOR DE DATA */
-.data-titulo {
-    margin-top: 15px;
-    font-weight: bold;
-    background: #ddd;
-    padding: 5px;
+.data-titulo{
+    background:#ddd;
+    padding:5px;
+    margin-top:15px;
+    font-weight:bold;
 }
 </style>
 </head>
@@ -104,14 +92,14 @@ input, textarea, select, button {
 <body>
 
 <header>
-    <img src="logo.png">
-    <div>🍔 Controle de Pedidos</div>
+    <img src="logo.png.jpg">
+    <h2>Controle da Lanchonete</h2>
 </header>
 
 <nav>
-    <button onclick="mostrarAba('pedidos')">Pedidos</button>
-    <button onclick="mostrarAba('entregas')">Entregas</button>
-    <button onclick="mostrarAba('financeiro')">Financeiro</button>
+    <button onclick="abrirAba('pedidos')">Pedidos</button>
+    <button onclick="abrirAba('entregas')">Entregas</button>
+    <button onclick="abrirAba('financeiro')">Financeiro</button>
 </nav>
 
 <div class="container">
@@ -124,7 +112,7 @@ input, textarea, select, button {
 <input id="cliente" placeholder="Nome do cliente">
 <textarea id="descricao" placeholder="Descrição do pedido"></textarea>
 
-<select id="tipo" onchange="toggleEndereco()">
+<select id="tipo" onchange="mostrarEndereco()">
     <option value="Local">Local</option>
     <option value="Entrega">Entrega</option>
 </select>
@@ -147,13 +135,21 @@ input, textarea, select, button {
 
 <!-- ENTREGAS -->
 <div id="entregas" class="section">
-<h3>Entregas</h3>
+<h3>Pedidos para Entrega</h3>
 <div id="listaEntregas"></div>
 </div>
 
 <!-- FINANCEIRO -->
 <div id="financeiro" class="section">
 <h3>Financeiro</h3>
+
+<div>
+    <button onclick="setFiltro('dia')">Hoje</button>
+    <button onclick="setFiltro('semana')">Semana</button>
+    <button onclick="setFiltro('mes')">Mês</button>
+    <button onclick="setFiltro('tudo')">Histórico</button>
+</div>
+
 <div id="financeiroDados"></div>
 </div>
 
@@ -161,27 +157,27 @@ input, textarea, select, button {
 
 <script>
 let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
-let ultimoNumero = parseInt(localStorage.getItem("ultimoNumeroPedido")) || 0;
-let modoFinanceiro = "dia";
+let ultimoNumero = parseInt(localStorage.getItem("ultimoNumero")) || 0;
+let filtroFinanceiro = "dia";
 
-function salvar() {
+function salvar(){
     localStorage.setItem("pedidos", JSON.stringify(pedidos));
-    localStorage.setItem("ultimoNumeroPedido", ultimoNumero);
+    localStorage.setItem("ultimoNumero", ultimoNumero);
 }
 
-function mostrarAba(id) {
-    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+function abrirAba(id){
+    document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
     document.getElementById(id).classList.add("active");
     renderizar();
 }
 
-function toggleEndereco() {
-    endereco.style.display = tipo.value === "Entrega" ? "block" : "none";
+function mostrarEndereco(){
+    endereco.style.display = tipo.value==="Entrega" ? "block" : "none";
 }
 
-function adicionarPedido() {
-    if (!cliente.value || !descricao.value || !valor.value) {
-        alert("Preencha todos os campos obrigatórios");
+function adicionarPedido(){
+    if(!cliente.value || !descricao.value || !valor.value){
+        alert("Preencha todos os campos");
         return;
     }
 
@@ -196,109 +192,110 @@ function adicionarPedido() {
         endereco: endereco.value,
         pagamento: pagamento.value,
         valor: parseFloat(valor.value),
-        dataISO: agora.toISOString().split("T")[0],
+        data: agora.toISOString().split("T")[0],
         hora: agora.toLocaleTimeString(),
-        status: "Em preparo"
+        status:"Em preparo"
     });
 
     salvar();
-    cliente.value = descricao.value = endereco.value = valor.value = "";
+    cliente.value="";
+    descricao.value="";
+    endereco.value="";
+    valor.value="";
     renderizar();
 }
 
-function alterarStatus(i, status) {
+function alterarStatus(i, status){
     pedidos[i].status = status;
     salvar();
     renderizar();
 }
 
-function excluirPedido(i) {
-    if (confirm("Excluir este pedido?")) {
-        pedidos.splice(i, 1);
+function excluirPedido(i){
+    if(confirm("Excluir pedido?")){
+        pedidos.splice(i,1);
         salvar();
         renderizar();
     }
 }
 
-function imprimirPedido(p) {
-    const win = window.open("", "print", "width=300,height=600");
-    win.document.write(`
-<pre style="font-family: monospace;">
-HAMBURGUERIA
-------------------------
-Pedido Nº ${p.numero}
-
+function imprimirPedido(p){
+    const w = window.open("","","width=300,height=600");
+    w.document.write(`
+<pre style="font-family:monospace;">
+PEDIDO Nº ${p.numero}
+--------------------
 Cliente: ${p.cliente}
 
 ${p.descricao}
 
-${p.tipo === "Entrega" ? "Endereço:\n" + p.endereco : "Consumo no local"}
+${p.tipo==="Entrega" ? "Endereço:\n"+p.endereco : "Consumo no local"}
 
 Pagamento: ${p.pagamento}
 Valor: R$ ${p.valor.toFixed(2)}
 
-Data: ${p.dataISO}
+Data: ${p.data}
 Hora: ${p.hora}
-------------------------
-</pre>`);
-    win.document.close();
-    win.print();
+</pre>
+`);
+    w.document.close();
+    w.print();
 }
 
-function setFinanceiro(modo) {
-    modoFinanceiro = modo;
+function setFiltro(f){
+    filtroFinanceiro=f;
     renderizar();
 }
 
-function mesmaSemana(dataPedido, hoje) {
-    const d1 = new Date(dataPedido);
-    const d2 = new Date(hoje);
-    const inicio = new Date(d2);
-    inicio.setDate(d2.getDate() - d2.getDay());
-    const fim = new Date(inicio);
-    fim.setDate(inicio.getDate() + 6);
-    return d1 >= inicio && d1 <= fim;
+function mesmaSemana(data){
+    const hoje=new Date();
+    const d=new Date(data);
+    const ini=new Date(hoje);
+    ini.setDate(hoje.getDate()-hoje.getDay());
+    const fim=new Date(ini);
+    fim.setDate(ini.getDate()+6);
+    return d>=ini && d<=fim;
 }
 
-function renderizar() {
+function renderizar(){
     /* PEDIDOS */
-    listaPedidos.innerHTML = "";
-    let agrupado = {};
+    listaPedidos.innerHTML="";
+    let porData={};
 
-    pedidos.forEach((p, i) => {
-        if (!agrupado[p.dataISO]) agrupado[p.dataISO] = [];
-        agrupado[p.dataISO].push({ ...p, index: i });
+    pedidos.forEach((p,i)=>{
+        if(!porData[p.data]) porData[p.data]=[];
+        porData[p.data].push({...p,index:i});
     });
 
-    Object.keys(agrupado).sort().reverse().forEach(data => {
-        listaPedidos.innerHTML += `<div class="data-titulo">📅 ${data}</div>`;
-        agrupado[data].forEach(p => {
-            listaPedidos.innerHTML += `
+    Object.keys(porData).sort().reverse().forEach(d=>{
+        listaPedidos.innerHTML+=`<div class="data-titulo">${d}</div>`;
+        porData[d].forEach(p=>{
+            listaPedidos.innerHTML+=`
             <div class="pedido">
                 <div class="pedido-info">
                     <strong>#${p.numero} - ${p.cliente}</strong><br>
                     ${p.descricao}<br>
-                    ${p.tipo === "Entrega" ? "📍 " + p.endereco + "<br>" : ""}
+                    ${p.tipo==="Entrega"?"📍 "+p.endereco+"<br>":""}
                     💰 R$ ${p.valor.toFixed(2)}<br>
                     ⏰ ${p.hora}
                 </div>
                 <div class="pedido-actions">
-                    <select onchange="alterarStatus(${p.index}, this.value)">
-                        <option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
-                        <option ${p.status=="Pronto"?"selected":""}>Pronto</option>
-                        <option ${p.status=="Entregue"?"selected":""}>Entregue</option>
+                    <select onchange="alterarStatus(${p.index},this.value)">
+                        <option ${p.status==="Em preparo"?"selected":""}>Em preparo</option>
+                        <option ${p.status==="Pronto"?"selected":""}>Pronto</option>
+                        <option ${p.status==="Entregue"?"selected":""}>Entregue</option>
                     </select>
-                    <button onclick="imprimirPedido(pedidos[${p.index}])">🖨 Imprimir</button>
-                    <button onclick="excluirPedido(${p.index})">🗑 Excluir</button>
+                    <button onclick="imprimirPedido(pedidos[${p.index}])">Imprimir</button>
+                    <button onclick="excluirPedido(${p.index})">Excluir</button>
                 </div>
             </div>`;
         });
     });
 
     /* ENTREGAS */
-    listaEntregas.innerHTML = "";
-    pedidos.filter(p => p.tipo === "Entrega").forEach(p => {
-        listaEntregas.innerHTML += `
+    listaEntregas.innerHTML="";
+    pedidos.filter(p=>p.tipo==="Entrega").forEach(p=>{
+        listaEntregas.innerHTML+=`
         <div class="pedido">
             <div class="pedido-info">
                 <strong>#${p.numero} - ${p.cliente}</strong><br>
@@ -309,29 +306,24 @@ function renderizar() {
     });
 
     /* FINANCEIRO */
-    const hoje = new Date().toISOString().split("T")[0];
-    let total = { Pix:0, Cartão:0, Dinheiro:0 };
+    let total={Pix:0,Cartão:0,Dinheiro:0};
+    const hoje=new Date().toISOString().split("T")[0];
 
-    pedidos.filter(p => p.status === "Entregue").forEach(p => {
-        let incluir = false;
-        if (modoFinanceiro === "dia") incluir = p.dataISO === hoje;
-        if (modoFinanceiro === "semana") incluir = mesmaSemana(p.dataISO, hoje);
-        if (modoFinanceiro === "mes") incluir = p.dataISO.slice(0,7) === hoje.slice(0,7);
-        if (modoFinanceiro === "tudo") incluir = true;
-        if (incluir) total[p.pagamento] += p.valor;
+    pedidos.filter(p=>p.status==="Entregue").forEach(p=>{
+        let ok=false;
+        if(filtroFinanceiro==="dia") ok=p.data===hoje;
+        if(filtroFinanceiro==="semana") ok=mesmaSemana(p.data);
+        if(filtroFinanceiro==="mes") ok=p.data.slice(0,7)===hoje.slice(0,7);
+        if(filtroFinanceiro==="tudo") ok=true;
+        if(ok) total[p.pagamento]+=p.valor;
     });
 
-    financeiroDados.innerHTML = `
-    <div style="display:flex; gap:5px; margin-bottom:10px;">
-        <button onclick="setFinanceiro('dia')">Hoje</button>
-        <button onclick="setFinanceiro('semana')">Semana</button>
-        <button onclick="setFinanceiro('mes')">Mês</button>
-        <button onclick="setFinanceiro('tudo')">Tudo</button>
-    </div>
+    financeiroDados.innerHTML=`
     Pix: R$ ${total.Pix.toFixed(2)}<br>
     Cartão: R$ ${total.Cartão.toFixed(2)}<br>
     Dinheiro: R$ ${total.Dinheiro.toFixed(2)}<hr>
-    <strong>Total: R$ ${(total.Pix + total.Cartão + total.Dinheiro).toFixed(2)}</strong>`;
+    <strong>Total: R$ ${(total.Pix+total.Cartão+total.Dinheiro).toFixed(2)}</strong>
+    `;
 }
 
 renderizar();
