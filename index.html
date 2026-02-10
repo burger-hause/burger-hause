@@ -56,6 +56,25 @@ gap:5px;
 .prod-row input, .prod-row textarea{width:100%}
 
 hr{margin:15px 0}
+
+/* Autocomplete lista de clientes */
+.autocomplete-items{
+  position: relative;
+  border: 1px solid #d4d4d4;
+  background-color: #fff;
+  max-height: 150px;
+  overflow-y: auto;
+  z-index: 99;
+}
+
+.autocomplete-item{
+  padding: 8px;
+  cursor: pointer;
+}
+
+.autocomplete-item:hover{
+  background-color: #e9e9e9;
+}
 </style>
 </head>
 
@@ -76,9 +95,9 @@ hr{margin:15px 0}
 <div id="pedidos" class="section active">
 <h2>Novo Pedido</h2>
 
-<!-- Campo para buscar clientes cadastrados -->
-<input id="buscarClientePedido" placeholder="Buscar cliente cadastrado" oninput="buscarClientePedido()">
-<select id="listaClientesPedido" onchange="selecionarClientePedido()"></select>
+<!-- Campo autocomplete de clientes -->
+<input id="buscarClientePedido" placeholder="Buscar cliente cadastrado" oninput="autocompleteClientePedido()">
+<div id="autocomplete-list" class="autocomplete-items"></div>
 
 <input id="cliente" placeholder="Nome do cliente">
 <input id="telefonePedido" placeholder="Telefone" readonly>
@@ -252,44 +271,30 @@ function renderClientes(){
   })
 }
 
-/* BUSCAR CLIENTES ABA CLIENTES */
-function buscarCliente(){
-  listaClientes.innerHTML=""
-  clientes
-    .filter(c => c.nome.toLowerCase().includes(buscarCliente.value.toLowerCase()))
-    .forEach((c,i) => listaClientes.innerHTML+=`<option value="${i}">${c.nome}</option>`)
-}
-
-function selecionarCliente(){
-  let i = listaClientes.value
-  if(i==="") return
-  let c = clientes[i]
-  nomeCliente.value = c.nome
-  enderecoCliente.value = c.endereco
-  telefoneCliente.value = c.telefone
-  obsCliente.value = c.obs
-}
-
-/* BUSCAR CLIENTES ABA PEDIDOS */
-function buscarClientePedido(){
-  listaClientesPedido.innerHTML = ""
-  clientes.forEach((c,index) => {
-    if(c.nome.toLowerCase().includes(buscarClientePedido.value.toLowerCase())){
-      listaClientesPedido.innerHTML += `<option value="${index}">${c.nome}</option>`
+/* AUTOCOMPLETE CLIENTE PEDIDOS */
+function autocompleteClientePedido(){
+  let val = buscarClientePedido.value
+  let list = document.getElementById("autocomplete-list")
+  list.innerHTML = ""
+  if(!val) return
+  clientes.forEach((c,index)=>{
+    if(c.nome.toLowerCase().includes(val.toLowerCase())){
+      let item = document.createElement("div")
+      item.classList.add("autocomplete-item")
+      item.innerHTML = c.nome
+      item.addEventListener("click", ()=>{
+        cliente.value = c.nome
+        telefonePedido.value = c.telefone
+        endereco.value = c.endereco
+        obsPedido.value = c.obs
+        clienteTelefone = c.telefone
+        clienteObs = c.obs
+        buscarClientePedido.value = ""
+        list.innerHTML = ""
+      })
+      list.appendChild(item)
     }
   })
-}
-
-function selecionarClientePedido(){
-  let i = listaClientesPedido.value
-  if(i==="") return
-  let c = clientes[i]
-  cliente.value = c.nome
-  telefonePedido.value = c.telefone
-  endereco.value = c.endereco
-  obsPedido.value = c.obs
-  clienteTelefone = c.telefone
-  clienteObs = c.obs
 }
 
 /* SALVAR CLIENTES */
