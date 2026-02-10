@@ -273,9 +273,11 @@ function selecionarCliente(){
 /* BUSCAR CLIENTES ABA PEDIDOS */
 function buscarClientePedido(){
   listaClientesPedido.innerHTML = ""
-  clientes
-    .filter(c => c.nome.toLowerCase().includes(buscarClientePedido.value.toLowerCase()))
-    .forEach((c,i) => listaClientesPedido.innerHTML += `<option value="${i}">${c.nome}</option>`)
+  clientes.forEach((c,index) => {
+    if(c.nome.toLowerCase().includes(buscarClientePedido.value.toLowerCase())){
+      listaClientesPedido.innerHTML += `<option value="${index}">${c.nome}</option>`
+    }
+  })
 }
 
 function selecionarClientePedido(){
