@@ -11,6 +11,7 @@ body {
     background: #f4f4f4;
 }
 
+/* TOPO */
 header {
     background: #222;
     color: #fff;
@@ -24,6 +25,7 @@ header img {
     margin: 0 auto 5px;
 }
 
+/* MENU SUPERIOR */
 nav {
     display: flex;
     background: #333;
@@ -56,27 +58,40 @@ input, textarea, select, button {
     box-sizing: border-box;
 }
 
+/* ===== CARD DO PEDIDO ===== */
 .pedido {
     background: #fff;
     padding: 10px;
     margin-bottom: 8px;
     border-radius: 5px;
     display: flex;
+    align-items: stretch;
     gap: 10px;
     font-size: 14px;
 }
 
+/* CONTEÚDO À ESQUERDA */
 .pedido-info {
-    flex: 3;
+    flex: 1;
 }
 
+/* BOTÕES NA LATERAL DIREITA */
 .pedido-actions {
-    flex: 1;
+    width: 110px;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 6px;
+    justify-content: center;
+    border-left: 1px solid #ddd;
+    padding-left: 8px;
 }
 
+.pedido-actions select,
+.pedido-actions button {
+    font-size: 13px;
+}
+
+/* AGRUPADOR DE DATA */
 .data-titulo {
     margin-top: 15px;
     font-weight: bold;
@@ -273,8 +288,8 @@ function renderizar() {
                         <option ${p.status=="Pronto"?"selected":""}>Pronto</option>
                         <option ${p.status=="Entregue"?"selected":""}>Entregue</option>
                     </select>
-                    <button onclick="imprimirPedido(pedidos[${p.index}])">🖨</button>
-                    <button onclick="excluirPedido(${p.index})">🗑</button>
+                    <button onclick="imprimirPedido(pedidos[${p.index}])">🖨 Imprimir</button>
+                    <button onclick="excluirPedido(${p.index})">🗑 Excluir</button>
                 </div>
             </div>`;
         });
@@ -285,9 +300,11 @@ function renderizar() {
     pedidos.filter(p => p.tipo === "Entrega").forEach(p => {
         listaEntregas.innerHTML += `
         <div class="pedido">
-            <strong>#${p.numero} - ${p.cliente}</strong><br>
-            ${p.endereco}<br>
-            Status: ${p.status}
+            <div class="pedido-info">
+                <strong>#${p.numero} - ${p.cliente}</strong><br>
+                ${p.endereco}<br>
+                Status: ${p.status}
+            </div>
         </div>`;
     });
 
@@ -322,3 +339,4 @@ renderizar();
 
 </body>
 </html>
+
