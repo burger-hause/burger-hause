@@ -314,3 +314,69 @@ render();
 
 </body>
 </html>
+function imprimirPedidoComEndereco(id) {
+  let p = pedidos.find(p => p.id === id);
+  if (!p) return;
+
+  let win = window.open("", "PRINT", "width=300,height=600");
+
+  win.document.write(`
+    <html>
+    <head>
+      <title>Pedido #${p.id}</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          font-size: 12px;
+          text-align: center;
+        }
+        hr {
+          border-top: 1px dashed #000;
+          border-bottom: none;
+          margin: 8px 0;
+        }
+        .left {
+          text-align: left;
+        }
+      </style>
+    </head>
+    <body>
+
+      <img src="logo.png.jpg" style="max-width:180px"><br>
+      <strong>PEDIDO Nº ${p.id}</strong>
+      <hr>
+
+      <div class="left">
+        <b>Cliente:</b> ${p.cliente}<br>
+        ${p.telefone ? `<b>Telefone:</b> ${p.telefone}<br>` : ""}
+
+        ${p.tipo === "Entrega" && p.endereco
+          ? `<b>Endereço:</b><br>${p.endereco}<br>`
+          : ""}
+
+        <hr>
+
+        <b>Itens:</b><br>
+        ${p.descricao.replace(/\n/g, "<br>")}
+
+        <hr>
+
+        <b>Total:</b> R$ ${p.valor.toFixed(2)}<br>
+        <b>Pagamento:</b> ${p.pagamento}<br>
+        <b>Status:</b> ${p.status}<br>
+        <b>Data:</b> ${p.data}
+      </div>
+
+      <hr>
+      <p>Obrigado pela preferência!</p>
+
+    </body>
+    </html>
+  `);
+
+  win.document.close();
+  win.focus();
+  win.print();
+  win.close();
+}
+
