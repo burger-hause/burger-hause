@@ -59,12 +59,13 @@ hr{margin:15px 0}
 
 /* Autocomplete lista de clientes */
 .autocomplete-items{
-  position: relative;
   border: 1px solid #d4d4d4;
   background-color: #fff;
   max-height: 150px;
   overflow-y: auto;
   z-index: 99;
+  position: absolute;
+  width: calc(100% - 10px);
 }
 
 .autocomplete-item{
@@ -77,7 +78,6 @@ hr{margin:15px 0}
 }
 </style>
 </head>
-
 <body>
 
 <aside>
@@ -95,9 +95,11 @@ hr{margin:15px 0}
 <div id="pedidos" class="section active">
 <h2>Novo Pedido</h2>
 
-<!-- Campo autocomplete de clientes -->
+<!-- Campo de busca funcional de clientes -->
+<div style="position:relative">
 <input id="buscarClientePedido" placeholder="Buscar cliente cadastrado" oninput="autocompleteClientePedido()">
 <div id="autocomplete-list" class="autocomplete-items"></div>
+</div>
 
 <input id="cliente" placeholder="Nome do cliente">
 <input id="telefonePedido" placeholder="Telefone" readonly>
@@ -166,8 +168,6 @@ hr{margin:15px 0}
 <textarea id="obsCliente" placeholder="Observações"></textarea>
 <button onclick="addCliente()">Adicionar Cliente</button>
 <hr>
-<input id="buscarCliente" placeholder="Buscar cliente" oninput="buscarCliente()">
-<select id="listaClientes" onchange="selecionarCliente()"></select>
 <div id="listaClientesSalvos"></div>
 </div>
 
@@ -273,15 +273,15 @@ function renderClientes(){
 
 /* AUTOCOMPLETE CLIENTE PEDIDOS */
 function autocompleteClientePedido(){
-  let val = buscarClientePedido.value
-  let list = document.getElementById("autocomplete-list")
+  const val = buscarClientePedido.value
+  const list = document.getElementById("autocomplete-list")
   list.innerHTML = ""
   if(!val) return
-  clientes.forEach((c,index)=>{
+  clientes.forEach((c)=>{
     if(c.nome.toLowerCase().includes(val.toLowerCase())){
-      let item = document.createElement("div")
+      const item = document.createElement("div")
       item.classList.add("autocomplete-item")
-      item.innerHTML = c.nome
+      item.innerHTML = `<strong>${c.nome}</strong><br>${c.telefone ? c.telefone : ""}`
       item.addEventListener("click", ()=>{
         cliente.value = c.nome
         telefonePedido.value = c.telefone
@@ -422,4 +422,3 @@ render()
 
 </body>
 </html>
-
