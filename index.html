@@ -102,6 +102,10 @@ display:flex;gap:5px;align-items:center
 <!-- FINANCEIRO -->
 <div id="financeiro" class="section">
 <h3>Financeiro</h3>
+<button onclick="calcFinanceiro('dia')">Hoje</button>
+<button onclick="calcFinanceiro('semana')">Semana</button>
+<button onclick="calcFinanceiro('mes')">Mês</button>
+<button onclick="calcFinanceiro('geral')">Geral</button>
 <div id="resumo"></div>
 </div>
 
@@ -170,16 +174,15 @@ renderCarrinho()
 
 function renderCarrinho(){
 let total=0,desc=[]
-carrinhoDiv=carrinho
 carrinho.innerHTML=""
-carrinhoDiv.forEach((p,i)=>{
+carrinho.forEach((p,i)=>{
 total+=p.valor*p.qtd
 desc.push(`${p.qtd}x ${p.nome}`)
 carrinho.innerHTML+=`
 <div class="item-produto">
 ${p.qtd}x ${p.nome}
 <button onclick="p.qtd++;renderCarrinho()">+</button>
-<button onclick="p.qtd--;if(p.qtd==0)carrinhoDiv.splice(${i},1);renderCarrinho()">-</button>
+<button onclick="p.qtd--;if(p.qtd==0)carrinho.splice(${i},1);renderCarrinho()">-</button>
 </div>`
 })
 descricao.value=desc.join(", ")
@@ -206,9 +209,23 @@ carrinho=[]
 save();render()
 }
 
-function alterarStatus(index,valor){
-pedidos[index].status=valor
+function alterarStatus(i,v){
+pedidos[i].status=v
 save();render()
+}
+
+function imprimir(p){
+let w=window.open("","print")
+w.document.write(`
+<img src="logo.png.jpg" width="120"><br>
+Pedido #${p.id}<br>
+Cliente: ${p.cliente}<br>
+${p.descricao}<br>
+Valor: R$ ${p.valor}<br>
+${p.tipo==="Entrega"?"Endereço: "+p.endereco:""}<br>
+${new Date(p.data).toLocaleString()}
+`)
+w.print()
 }
 
 function render(){
@@ -232,6 +249,7 @@ ${new Date(p.data).toLocaleString()}
 <option ${p.status=="Pronto"?"selected":""}>Pronto</option>
 <option ${p.status=="Entregue"?"selected":""}>Entregue</option>
 </select>
+<button onclick="imprimir(p)">Imprimir</button>
 <button onclick="pedidos.splice(${i},1);save();render()">Excluir</button>
 </div>
 </div>`
@@ -251,6 +269,26 @@ Dinheiro: R$ ${tot.Dinheiro.toFixed(2)}<br>
 <b>Total: R$ ${(tot.Pix+tot.Cartão+tot.Dinheiro).toFixed(2)}</b>`
 
 renderProdutos()
+}
+
+function calcFinanceiro(tipo){
+let hoje=new Date()
+let tot={Pix:0,Cartão:0,Dinheiro:0}
+
+pedidos.filter(p=>p.status==="Entregue").forEach(p=>{
+let d=new Date(p.data)
+let ok=false
+if(tipo==="dia") ok=d.toDateString()===hoje.toDateString()
+if(tipo==="semana") ok=(hoje-d)/86400000<=7
+if(tipo==="mes") ok=d.getMonth()===hoje.getMonth()
+if(tipo==="geral") ok=true
+if(ok) tot[p.pagamento]+=p.valor
+})
+
+resumo.innerHTML=`Pix: R$ ${tot.Pix}<br>
+Cartão: R$ ${tot.Cartão}<br>
+Dinheiro: R$ ${tot.Dinheiro}<br>
+<b>Total: R$ ${(tot.Pix+tot.Cartão+tot.Dinheiro).toFixed(2)}</b>`
 }
 
 function save(){
