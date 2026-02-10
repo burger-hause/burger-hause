@@ -15,7 +15,7 @@ section{flex:1;padding:10px;overflow:auto}
 table{width:100%;border-collapse:collapse;margin-top:10px}
 th,td{border:1px solid #ccc;padding:5px}
 input,select,button{padding:6px;margin:3px}
-button.print{background:#0a7;color:#fff}
+#listaClientesBusca button{display:block;width:100%;text-align:left}
 </style>
 </head>
 
@@ -42,8 +42,11 @@ button.print{background:#0a7;color:#fff}
 
 <input type="hidden" id="pedidoEditando">
 
-Cliente:
-<select id="clienteSelect"></select><br>
+Cliente:<br>
+<input id="buscaCliente" placeholder="Buscar cliente" oninput="buscarCliente()">
+<div id="listaClientesBusca"></div>
+
+<div id="dadosCliente" style="font-size:14px;margin:5px 0"></div>
 
 Tipo:
 <select id="tipo" onchange="toggleEndereco()">
@@ -70,8 +73,7 @@ Produto:
 
 <b>Total: R$ <span id="total">0.00</span></b><br>
 
-<button onclick="salvarPedido(false)">Salvar</button>
-<button class="print" onclick="salvarPedido(true)">Salvar e Imprimir</button>
+<button onclick="salvarPedido()">Salvar Pedido</button>
 
 <h2>Pedidos</h2>
 <table id="listaPedidos"></table>
@@ -86,57 +88,43 @@ Produto:
 <!-- FINANCEIRO -->
 <section id="financeiro" class="hidden">
 <h2>Financeiro</h2>
-<select id="filtroFinanceiro" onchange="renderFinanceiro()">
-<option value="dia">Hoje</option>
-<option value="semana">Semana</option>
-<option value="mes">Mês</option>
-<option value="total">Total</option>
-</select>
 <div id="financeiroDados"></div>
 </section>
 
 <!-- HISTÓRICO -->
 <section id="historico" class="hidden">
 <h2>Histórico</h2>
-<select id="filtroHistorico" onchange="renderHistorico()">
-<option value="dia">Hoje</option>
-<option value="semana">Semana</option>
-<option value="mes">Mês</option>
-</select>
-<button onclick="limparHistorico()">Excluir período</button>
 <table id="listaHistorico"></table>
 </section>
 
 <!-- PRODUTOS -->
 <section id="produtos" class="hidden">
 <h2>Produtos</h2>
-<input type="hidden" id="prodEditando">
 <input id="nomeProd" placeholder="Nome">
 <input id="valorProd" type="number" placeholder="Valor">
-<button onclick="salvarProduto()">Salvar</button>
+<button onclick="addProduto()">Salvar</button>
 <table id="listaProdutos"></table>
 </section>
 
 <!-- CLIENTES -->
 <section id="clientes" class="hidden">
 <h2>Clientes</h2>
-<input type="hidden" id="cliEditando">
 <input id="nomeCli" placeholder="Nome">
 <input id="telCli" placeholder="Telefone">
 <input id="endCli" placeholder="Endereço">
-<button onclick="salvarCliente()">Salvar</button>
+<button onclick="addCliente()">Salvar</button>
 <table id="listaClientes"></table>
 </section>
 
 </main>
 
 <script>
-let pedidos=JSON.parse(localStorage.getItem("pedidos")||"[]");
-let produtos=JSON.parse(localStorage.getItem("produtos")||"[]");
-let clientes=JSON.parse(localStorage.getItem("clientes")||"[]");
+let pedidos = JSON.parse(localStorage.getItem("pedidos")||"[]");
+let produtos = JSON.parse(localStorage.getItem("produtos")||"[]");
+let clientes = JSON.parse(localStorage.getItem("clientes")||"[]");
 let itensPedido=[];
+let clienteSelecionado=null;
 
-/* UTIL */
 function show(id){
 document.querySelectorAll("section").forEach(s=>s.classList.add("hidden"));
 document.getElementById(id).classList.remove("hidden");
@@ -145,6 +133,30 @@ render();
 
 function toggleEndereco(){
 endereco.style.display = tipo.value=="Entrega"?"block":"none";
+}
+
+/* CLIENTE BUSCA */
+function buscarCliente(){
+let v=buscaCliente.value.toLowerCase();
+listaClientesBusca.innerHTML="";
+clientes.filter(c=>c.nome.toLowerCase().includes(v)).forEach(c=>{
+let b=document.createElement("button");
+b.textContent=c.nome;
+b.onclick=()=>selecionarCliente(c);
+listaClientesBusca.appendChild(b);
+});
+}
+
+function selecionarCliente(c){
+clienteSelecionado=c;
+buscaCliente.value=c.nome;
+listaClientesBusca.innerHTML="";
+dadosCliente.innerHTML=`
+<b>Nome:</b> ${c.nome}<br>
+<b>Telefone:</b> ${c.tel}<br>
+<b>Endereço:</b> ${c.end}
+`;
+endereco.value=c.end;
 }
 
 /* PRODUTOS */
@@ -176,65 +188,33 @@ total.textContent=t.toFixed(2);
 }
 
 /* PEDIDOS */
-function salvarPedido(imprimirAgora){
+function salvarPedido(){
 let id=pedidoEditando.value||Date.now();
 pedidos=pedidos.filter(p=>p.id!=id);
 
-let pedido={
+pedidos.push({
 id,
-cliente:clienteSelect.value,
+cliente:clienteSelecionado?clienteSelecionado.nome:"",
+telefone:clienteSelecionado?clienteSelecionado.tel:"",
+endereco:clienteSelecionado?clienteSelecionado.end:endereco.value,
 tipo:tipo.value,
-endereco:endereco.value,
 pagamento:pagamento.value,
 itens:[...itensPedido],
 valor:+total.textContent,
 status:"Em preparo",
 data:new Date().toISOString()
-};
+});
 
-pedidos.push(pedido);
 localStorage.setItem("pedidos",JSON.stringify(pedidos));
-
 itensPedido=[];
 pedidoEditando.value="";
+clienteSelecionado=null;
+dadosCliente.innerHTML="";
+buscaCliente.value="";
 render();
-
-if(imprimirAgora) imprimirPedido(pedido);
 }
 
-function editarPedido(id){
-let p=pedidos.find(p=>p.id==id);
-pedidoEditando.value=p.id;
-clienteSelect.value=p.cliente;
-tipo.value=p.tipo;
-endereco.value=p.endereco;
-pagamento.value=p.pagamento;
-itensPedido=[...p.itens];
-renderItens();
-show("pedidos");
-}
-
-/* IMPRESSÃO */
-function imprimirPedido(p){
-let w=window.open("","","width=300");
-w.document.write(`
-<center>
-<img src="logo.png.jpg" width="120"><br>
-<b>Pedido #${p.id}</b>
-</center><hr>
-Cliente: ${p.cliente}<br>
-${p.tipo=="Entrega"?"Endereço: "+p.endereco+"<br>":""}
-<hr>
-${p.itens.map(i=>`${i.qtd}x ${i.nome}`).join("<br>")}
-<hr>
-<b>Total: R$ ${p.valor.toFixed(2)}</b><br>
-Pagamento: ${p.pagamento}<br>
-${new Date(p.data).toLocaleString()}
-`);
-w.print();
-}
-
-/* RENDER PEDIDOS */
+/* RENDER */
 function renderPedidos(){
 listaPedidos.innerHTML="<tr><th>ID</th><th>Cliente</th><th>Status</th><th>Ações</th></tr>";
 pedidos.forEach(p=>{
@@ -242,46 +222,36 @@ listaPedidos.innerHTML+=`
 <tr>
 <td>${p.id}</td>
 <td>${p.cliente}</td>
-<td>${p.status}</td>
+<td>
+<select onchange="p.status=this.value;localStorage.setItem('pedidos',JSON.stringify(pedidos));render()">
+<option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
+<option ${p.status=="Pronto"?"selected":""}>Pronto</option>
+<option ${p.status=="Finalizado"?"selected":""}>Finalizado</option>
+<option ${p.status=="Entregue"?"selected":""}>Entregue</option>
+</select>
+</td>
 <td>
 <button onclick="editarPedido(${p.id})">✏️</button>
-<button onclick="imprimirPedido(pedidos.find(x=>x.id==${p.id}))">🖨️</button>
-<button onclick="pedidos=pedidos.filter(x=>x.id!=${p.id});localStorage.setItem('pedidos',JSON.stringify(pedidos));render()">❌</button>
 </td>
 </tr>`;
 });
 }
 
-/* CLIENTES */
-function salvarCliente(){
-let id=cliEditando.value;
-if(id){
-let c=clientes.find(c=>c.id==id);
-c.nome=nomeCli.value;c.tel=telCli.value;c.end=endCli.value;
-cliEditando.value="";
-}else clientes.push({id:Date.now(),nome:nomeCli.value,tel:telCli.value,end:endCli.value});
-localStorage.setItem("clientes",JSON.stringify(clientes));
-nomeCli.value=telCli.value=endCli.value="";
-render();
+function editarPedido(id){
+let p=pedidos.find(x=>x.id==id);
+pedidoEditando.value=p.id;
+buscaCliente.value=p.cliente;
+dadosCliente.innerHTML=`<b>Endereço:</b> ${p.endereco}`;
+endereco.value=p.endereco;
+tipo.value=p.tipo;
+pagamento.value=p.pagamento;
+itensPedido=[...p.itens];
+renderItens();
+show("pedidos");
 }
 
-function renderClientes(){
-clienteSelect.innerHTML="";
-clientes.forEach(c=>clienteSelect.innerHTML+=`<option>${c.nome}</option>`);
-listaClientes.innerHTML="<tr><th>Nome</th><th>Telefone</th><th>Endereço</th><th></th></tr>";
-clientes.forEach(c=>{
-listaClientes.innerHTML+=`
-<tr>
-<td>${c.nome}</td><td>${c.tel}</td><td>${c.end}</td>
-<td><button onclick="cliEditando.value=${c.id};nomeCli.value='${c.nome}';telCli.value='${c.tel}';endCli.value='${c.end}'">✏️</button></td>
-</tr>`;
-});
-}
-
-/* RENDER GERAL */
 function render(){
 renderPedidos();
-renderClientes();
 }
 
 render();
