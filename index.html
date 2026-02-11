@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <title>Sistema da Lanchonete</title>
-
 <style>
 body{margin:0;font-family:Arial;background:#f2f2f2;display:flex}
-aside{width:230px;background:#222;color:#fff;min-height:100vh}
+aside{width:220px;background:#222;color:#fff;min-height:100vh}
 aside img{width:130px;display:block;margin:15px auto}
 aside button{
 width:100%;padding:12px;border:none;background:none;
@@ -22,14 +21,23 @@ input,textarea,select,button{
 width:100%;padding:8px;margin:5px 0;box-sizing:border-box
 }
 
-.pedido,.cliente-box{
+.pedido{
 background:#fff;
 padding:10px;
 margin-bottom:10px;
+display:grid;
+grid-template-columns: 1fr 200px;
+gap:10px;
 border-radius:6px;
 }
 
-.actions{display:flex;flex-direction:column;gap:6px}
+.actions{
+display:flex;
+flex-direction:column;
+gap:6px;
+}
+
+.actions button{width:100%}
 
 .item-produto{
 background:#eee;
@@ -45,21 +53,40 @@ margin-bottom:5px;
 display:flex;
 gap:5px;
 }
-.prod-row input{width:100%}
+.prod-row input, .prod-row textarea{width:100%}
 
 hr{margin:15px 0}
+
+/* Autocomplete lista de clientes */
+.autocomplete-items{
+  border: 1px solid #d4d4d4;
+  background-color: #fff;
+  max-height: 150px;
+  overflow-y: auto;
+  z-index: 99;
+  position: absolute;
+  width: calc(100% - 10px);
+}
+
+.autocomplete-item{
+  padding: 8px;
+  cursor: pointer;
+}
+
+.autocomplete-item:hover{
+  background-color: #e9e9e9;
+}
 </style>
 </head>
-
 <body>
 
 <aside>
 <img src="logo.png.jpg">
 <button onclick="abrir('pedidos')">Pedidos</button>
-<button onclick="abrir('clientes')">Clientes</button>
 <button onclick="abrir('entregas')">Entregas</button>
 <button onclick="abrir('financeiro')">Financeiro</button>
 <button onclick="abrir('produtos')">Produtos</button>
+<button onclick="abrir('clientes')">Clientes</button>
 </aside>
 
 <main>
@@ -68,17 +95,20 @@ hr{margin:15px 0}
 <div id="pedidos" class="section active">
 <h2>Novo Pedido</h2>
 
-<input id="buscaCliente" placeholder="Buscar cliente cadastrado" oninput="buscarCliente()">
-<select id="listaClientes" onchange="selecionarCliente()"></select>
+<!-- Campo de busca funcional de clientes -->
+<div style="position:relative">
+<input id="buscarClientePedido" placeholder="Buscar cliente cadastrado" oninput="autocompleteClientePedido()">
+<div id="autocomplete-list" class="autocomplete-items"></div>
+</div>
 
 <input id="cliente" placeholder="Nome do cliente">
-<input id="telefone" placeholder="Telefone">
-<input id="endereco" placeholder="Endereço">
-
-<select id="tipo">
+<input id="telefonePedido" placeholder="Telefone" readonly>
+<select id="tipo" onchange="endereco.style.display=this.value=='Entrega'?'block':'none'">
 <option value="Local">Local</option>
 <option value="Entrega">Entrega</option>
 </select>
+<input id="endereco" placeholder="Endereço completo" style="display:none">
+<textarea id="obsPedido" placeholder="Observações"></textarea>
 
 <input id="buscaProduto" placeholder="Buscar produto" oninput="buscarProduto()">
 <select id="listaBusca"></select>
@@ -100,19 +130,6 @@ hr{margin:15px 0}
 <hr>
 <h3>Pedidos</h3>
 <div id="listaPedidos"></div>
-</div>
-
-<!-- CLIENTES -->
-<div id="clientes" class="section">
-<h2>Clientes</h2>
-
-<input id="nomeCliente" placeholder="Nome">
-<input id="telCliente" placeholder="Telefone">
-<input id="endCliente" placeholder="Endereço">
-<button onclick="addCliente()">Salvar Cliente</button>
-
-<hr>
-<div id="listaClientesCad"></div>
 </div>
 
 <!-- ENTREGAS -->
@@ -142,160 +159,262 @@ hr{margin:15px 0}
 <div id="listaProdutos"></div>
 </div>
 
+<!-- CLIENTES -->
+<div id="clientes" class="section">
+<h2>Clientes</h2>
+<input id="nomeCliente" placeholder="Nome do cliente">
+<input id="telefoneCliente" placeholder="Telefone">
+<input id="enderecoCliente" placeholder="Endereço">
+<textarea id="obsCliente" placeholder="Observações"></textarea>
+<button onclick="addCliente()">Adicionar Cliente</button>
+<hr>
+<div id="listaClientesSalvos"></div>
+</div>
+
 </main>
 
 <script>
+/* VARIÁVEIS INICIAIS */
 let produtos = JSON.parse(localStorage.getItem("produtos")) || []
 let pedidos = JSON.parse(localStorage.getItem("pedidos")) || []
 let clientes = JSON.parse(localStorage.getItem("clientes")) || []
-let carrinho=[]
-let numPedido = localStorage.getItem("numPedido") || 1
+let carrinho = []
+let numPedido = Number(localStorage.getItem("numPedido")) || 1
+let clienteTelefone = ""
+let clienteObs = ""
 
+/* NAVEGAÇÃO */
 function abrir(id){
-document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"))
-document.getElementById(id).classList.add("active")
-render()
-}
-
-/* CLIENTES */
-function addCliente(){
-if(!nomeCliente.value)return
-clientes.push({
-nome:nomeCliente.value,
-telefone:telCliente.value,
-endereco:endCliente.value
-})
-nomeCliente.value="";telCliente.value="";endCliente.value=""
-save();render()
-}
-
-function buscarCliente(){
-listaClientes.innerHTML=""
-clientes
-.filter(c=>c.nome.toLowerCase().includes(buscaCliente.value.toLowerCase()))
-.forEach((c,i)=>{
-listaClientes.innerHTML+=`<option value="${i}">${c.nome}</option>`
-})
-}
-
-function selecionarCliente(){
-let c=clientes[listaClientes.value]
-if(!c)return
-cliente.value=c.nome
-telefone.value=c.telefone
-endereco.value=c.endereco
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"))
+  document.getElementById(id).classList.add("active")
+  render()
 }
 
 /* PRODUTOS */
 function addProd(){
-if(!nomeProd.value||!valorProd.value)return
-produtos.push({nome:nomeProd.value,valor:+valorProd.value})
-nomeProd.value="";valorProd.value=""
-save();render()
+  if(!nomeProd.value||!valorProd.value) return
+  produtos.push({nome:nomeProd.value,valor:+valorProd.value})
+  nomeProd.value=""; valorProd.value=""
+  save(); render()
 }
 
+function renderProdutos(){
+  listaProdutos.innerHTML=""
+  produtos.forEach((p,i)=>{
+    listaProdutos.innerHTML+=`
+      <div class="prod-row">
+        <input value="${p.nome}" onchange="produtos[${i}].nome=this.value;save()">
+        <input type="number" value="${p.valor}" onchange="produtos[${i}].valor=+this.value;save()">
+        <button onclick="produtos.splice(${i},1);save();render()">🗑️</button>
+      </div>`
+  })
+}
+
+/* BUSCA / CARRINHO */
 function buscarProduto(){
-listaBusca.innerHTML=""
-produtos
-.filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
-.forEach((p,i)=>listaBusca.innerHTML+=`<option value="${i}">${p.nome}</option>`)
+  listaBusca.innerHTML=""
+  produtos
+    .filter(p=>p.nome.toLowerCase().includes(buscaProduto.value.toLowerCase()))
+    .forEach((p,i)=>listaBusca.innerHTML+=`<option value="${i}">${p.nome}</option>`)
 }
 
 function addProduto(){
-let p=produtos[listaBusca.value]
-if(!p)return
-let item=carrinho.find(i=>i.nome===p.nome)
-item?item.qtd++:carrinho.push({nome:p.nome,valor:p.valor,qtd:1})
-renderCarrinho()
+  let p=produtos[listaBusca.value]
+  if(!p) return
+  let item=carrinho.find(i=>i.nome===p.nome)
+  item?item.qtd++:carrinho.push({nome:p.nome,valor:p.valor,qtd:1})
+  renderCarrinho()
 }
 
 function renderCarrinho(){
-let total=0,desc=[]
-carrinho.innerHTML=""
-carrinho.forEach((p,i)=>{
-total+=p.valor*p.qtd
-desc.push(`${p.qtd}x ${p.nome}`)
-carrinho.innerHTML+=`
-<div class="item-produto">
-${p.qtd}x ${p.nome}
-<button onclick="p.qtd++;renderCarrinho()">+</button>
-<button onclick="p.qtd--;if(p.qtd==0)carrinho.splice(${i},1);renderCarrinho()">-</button>
-</div>`
-})
-descricao.value=desc.join(", ")
-valor.value=total.toFixed(2)
+  let total=0,desc=[]
+  carrinho.innerHTML=""
+  carrinho.forEach((p,i)=>{
+    total+=p.valor*p.qtd
+    desc.push(`${p.qtd}x ${p.nome}`)
+    carrinho.innerHTML+=`
+      <div class="item-produto">
+        ${p.qtd}x ${p.nome} - R$ ${(p.valor*p.qtd).toFixed(2)}
+        <button onclick="p.qtd++;renderCarrinho()">+</button>
+        <button onclick="p.qtd--;if(p.qtd==0)carrinho.splice(${i},1);renderCarrinho()">-</button>
+      </div>`
+  })
+  descricao.value=desc.join(", ")
+  valor.value=total.toFixed(2)
+}
+
+/* CLIENTES */
+function addCliente(){
+  if(!nomeCliente.value) return alert("O nome é obrigatório")
+  clientes.push({
+    nome: nomeCliente.value,
+    telefone: telefoneCliente.value,
+    endereco: enderecoCliente.value,
+    obs: obsCliente.value
+  })
+  nomeCliente.value=""; telefoneCliente.value=""; enderecoCliente.value=""; obsCliente.value=""
+  saveClientes()
+  renderClientes()
+}
+
+function renderClientes(){
+  listaClientesSalvos.innerHTML=""
+  clientes.forEach((c,i)=>{
+    listaClientesSalvos.innerHTML+=`
+      <div class="prod-row">
+        <input value="${c.nome}" onchange="clientes[${i}].nome=this.value;saveClientes()">
+        <input value="${c.telefone}" onchange="clientes[${i}].telefone=this.value;saveClientes()">
+        <input value="${c.endereco}" onchange="clientes[${i}].endereco=this.value;saveClientes()">
+        <textarea onchange="clientes[${i}].obs=this.value;saveClientes()">${c.obs}</textarea>
+        <button onclick="clientes.splice(${i},1);saveClientes();renderClientes()">🗑️</button>
+      </div>`
+  })
+}
+
+/* AUTOCOMPLETE CLIENTE PEDIDOS */
+function autocompleteClientePedido(){
+  const val = buscarClientePedido.value
+  const list = document.getElementById("autocomplete-list")
+  list.innerHTML = ""
+  if(!val) return
+  clientes.forEach((c)=>{
+    if(c.nome.toLowerCase().includes(val.toLowerCase())){
+      const item = document.createElement("div")
+      item.classList.add("autocomplete-item")
+      item.innerHTML = `<strong>${c.nome}</strong><br>${c.telefone ? c.telefone : ""}`
+      item.addEventListener("click", ()=>{
+        cliente.value = c.nome
+        telefonePedido.value = c.telefone
+        endereco.value = c.endereco
+        obsPedido.value = c.obs
+        clienteTelefone = c.telefone
+        clienteObs = c.obs
+        buscarClientePedido.value = ""
+        list.innerHTML = ""
+      })
+      list.appendChild(item)
+    }
+  })
+}
+
+/* SALVAR CLIENTES */
+function saveClientes(){
+  localStorage.setItem("clientes", JSON.stringify(clientes))
 }
 
 /* PEDIDOS */
 function salvarPedido(){
-if(!cliente.value||!valor.value)return
-pedidos.push({
-id:numPedido++,
-cliente:cliente.value,
-telefone:telefone.value,
-endereco:endereco.value,
-descricao:descricao.value,
-valor:+valor.value,
-pagamento:pagamento.value,
-status:"Em preparo",
-data:new Date().toISOString()
-})
-localStorage.setItem("numPedido",numPedido)
-cliente.value="";telefone.value="";endereco.value=""
-descricao.value="";valor.value=""
-carrinho=[]
-save();render()
+  if(!cliente.value||!valor.value) return alert("Cliente e valor são obrigatórios")
+  pedidos.push({
+    id:numPedido++,
+    cliente:cliente.value,
+    telefone:clienteTelefone||"",
+    descricao:descricao.value,
+    valor:+valor.value,
+    tipo:tipo.value,
+    endereco:endereco.value,
+    pagamento:pagamento.value,
+    obs:clienteObs||"",
+    status:"Em preparo",
+    data:new Date().toISOString()
+  })
+  localStorage.setItem("numPedido", numPedido)
+  cliente.value=""; descricao.value=""; valor.value=""; carrinho=[]
+  endereco.value=""; clienteTelefone=""; clienteObs=""
+  telefonePedido.value=""; obsPedido.value=""
+  save(); render()
+}
+
+function statusPedido(i,v){
+  pedidos[i].status=v
+  save(); render()
+}
+
+function excluirPedido(i){
+  if(confirm("Excluir este pedido?")){
+    pedidos.splice(i,1)
+    save(); render()
+  }
+}
+
+function imprimirPedido(p){
+  let w=window.open("","","width=300")
+  w.document.write(`
+<img src="logo.png.jpg" style="width:120px"><br>
+<b>Pedido #${p.id}</b><br>
+Cliente: ${p.cliente}<br>
+Telefone: ${p.telefone ? p.telefone+"<br>" : ""}
+${p.tipo==="Entrega"?"Endereço: "+p.endereco+"<br>":""}
+${p.descricao}<br>
+Observações: ${p.obs}<br>
+Valor: R$ ${p.valor.toFixed(2)}<br>
+Pagamento: ${p.pagamento}<br>
+${new Date(p.data).toLocaleString()}
+`)
+  w.print()
 }
 
 /* RENDER */
 function render(){
-listaClientesCad.innerHTML=""
-clientes.forEach((c,i)=>{
-listaClientesCad.innerHTML+=`
-<div class="cliente-box">
-<b>${c.nome}</b><br>
-${c.telefone}<br>
-${c.endereco}
-<button onclick="clientes.splice(${i},1);save();render()">🗑️</button>
-</div>`
-})
-
-listaPedidos.innerHTML=""
-listaEntregas.innerHTML=""
-pedidos.forEach(p=>{
-listaPedidos.innerHTML+=`
-<div class="pedido">
-<b>#${p.id}</b> - ${p.cliente}<br>
-${p.descricao}<br>
-R$ ${p.valor.toFixed(2)}
-</div>`
-if(p.endereco)
-listaEntregas.innerHTML+=`
-<b>#${p.id}</b> ${p.cliente}<br>${p.endereco}<hr>`
-})
-
-listaProdutos.innerHTML=""
-produtos.forEach((p,i)=>{
-listaProdutos.innerHTML+=`
-<div class="prod-row">
-<input value="${p.nome}" onchange="produtos[${i}].nome=this.value;save()">
-<input type="number" value="${p.valor}" onchange="produtos[${i}].valor=+this.value;save()">
-<button onclick="produtos.splice(${i},1);save();render()">🗑️</button>
-</div>`
-})
+  listaPedidos.innerHTML=""
+  listaEntregas.innerHTML=""
+  pedidos.forEach((p,i)=>{
+    listaPedidos.innerHTML+=`
+      <div class="pedido">
+        <div>
+          <b>#${p.id}</b> - ${p.cliente}<br>
+          Telefone: ${p.telefone}<br>
+          ${p.descricao}<br>
+          Observações: ${p.obs}<br>
+          R$ ${p.valor.toFixed(2)} - ${p.pagamento}<br>
+          ${new Date(p.data).toLocaleString()}
+        </div>
+        <div class="actions">
+          <select onchange="statusPedido(${i},this.value)">
+            <option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
+            <option ${p.status=="Pronto"?"selected":""}>Pronto</option>
+            <option ${p.status=="Entregue"?"selected":""}>Entregue</option>
+          </select>
+          <button onclick="imprimirPedido(pedidos[${i}])">🖨️ Imprimir</button>
+          <button onclick="excluirPedido(${i})">🗑️ Excluir</button>
+        </div>
+      </div>`
+    if(p.tipo==="Entrega")
+      listaEntregas.innerHTML+=`
+        <b>#${p.id}</b> ${p.cliente}<br>
+        Telefone: ${p.telefone}<br>
+        ${p.endereco}<br>
+        Observações: ${p.obs}<br>
+        Status: ${p.status}<hr>`
+  })
+  renderProdutos()
+  renderClientes()
 }
 
 /* FINANCEIRO */
 function financeiro(tipo){
-let total=0
-pedidos.forEach(p=>total+=p.valor)
-resumo.innerHTML="Total: R$ "+total.toFixed(2)
+  let hoje=new Date()
+  let tot={Pix:0,Cartão:0,Dinheiro:0}
+  pedidos.filter(p=>p.status==="Entregue").forEach(p=>{
+    let d=new Date(p.data)
+    let ok=false
+    if(tipo==="dia") ok=d.toDateString()===hoje.toDateString()
+    if(tipo==="semana") ok=(hoje-d)/86400000<=7
+    if(tipo==="mes") ok=d.getMonth()===hoje.getMonth()&&d.getFullYear()===hoje.getFullYear()
+    if(tipo==="geral") ok=true
+    if(ok) tot[p.pagamento]+=p.valor
+  })
+  resumo.innerHTML=`
+Pix: R$ ${tot.Pix.toFixed(2)}<br>
+Cartão: R$ ${tot.Cartão.toFixed(2)}<br>
+Dinheiro: R$ ${tot.Dinheiro.toFixed(2)}<br>
+<b>Total: R$ ${(tot.Pix+tot.Cartão+tot.Dinheiro).toFixed(2)}</b>`
 }
 
+/* SALVAR */
 function save(){
-localStorage.setItem("produtos",JSON.stringify(produtos))
-localStorage.setItem("pedidos",JSON.stringify(pedidos))
-localStorage.setItem("clientes",JSON.stringify(clientes))
+  localStorage.setItem("produtos",JSON.stringify(produtos))
+  localStorage.setItem("pedidos",JSON.stringify(pedidos))
 }
 
 render()
