@@ -122,7 +122,7 @@ small{color:#555}
 <div id="resumo"></div>
 </div>
 
-<!-- HISTÓRICO CLIENTES -->
+<!-- HISTÓRICO DE CLIENTES -->
 <div id="historico" class="section">
 <h2>Histórico de Clientes</h2>
 <div id="listaClientes"></div>
@@ -172,7 +172,7 @@ listaProdutos.innerHTML+=`
 })
 }
 
-/* CARRINHO */
+/* BUSCA / CARRINHO */
 function buscarProduto(){
 listaBusca.innerHTML=""
 produtos
@@ -190,11 +190,11 @@ renderCarrinho()
 
 function renderCarrinho(){
 let total=0,desc=[]
-carrinhoDiv.innerHTML=""
+carrinho.innerHTML=""
 carrinho.forEach((p,i)=>{
 total+=p.valor*p.qtd
 desc.push(`${p.qtd}x ${p.nome}`)
-carrinhoDiv.innerHTML+=`
+carrinho.innerHTML+=`
 <div class="item-produto">
 ${p.qtd}x ${p.nome}
 <button onclick="p.qtd++;renderCarrinho()">+</button>
@@ -242,11 +242,20 @@ pedidos[i].status=v
 save();render()
 }
 
-/* HISTÓRICO CLIENTES */
+/* HISTÓRICO DE CLIENTES */
 function renderHistorico(){
 let mapa={}
 pedidos.forEach(p=>{
-if(!mapa[p.cliente])mapa[p.cliente]={...p,total:0,qtd:0,pedidos:[]}
+if(!mapa[p.cliente]){
+mapa[p.cliente]={
+cliente:p.cliente,
+telefone:p.telefone,
+endereco:p.endereco,
+total:0,
+qtd:0,
+pedidos:[]
+}
+}
 mapa[p.cliente].total+=p.valor
 mapa[p.cliente].qtd++
 mapa[p.cliente].pedidos.push(p)
@@ -316,3 +325,4 @@ render()
 
 </body>
 </html>
+
