@@ -27,12 +27,7 @@ background:#fff;
 padding:10px;
 margin-bottom:10px;
 border-radius:6px;
-border-left:6px solid #999;
 }
-
-.status-preparo{border-color:#e74c3c}
-.status-entrega{border-color:#f1c40f}
-.status-entregue{border-color:#2ecc71}
 
 .actions{display:flex;flex-direction:column;gap:6px}
 
@@ -53,7 +48,6 @@ gap:5px;
 .prod-row input{width:100%}
 
 hr{margin:15px 0}
-small{color:#555}
 </style>
 </head>
 
@@ -62,9 +56,9 @@ small{color:#555}
 <aside>
 <img src="logo.png.jpg">
 <button onclick="abrir('pedidos')">Pedidos</button>
+<button onclick="abrir('clientes')">Clientes</button>
 <button onclick="abrir('entregas')">Entregas</button>
 <button onclick="abrir('financeiro')">Financeiro</button>
-<button onclick="abrir('historico')">Histórico de Clientes</button>
 <button onclick="abrir('produtos')">Produtos</button>
 </aside>
 
@@ -73,6 +67,9 @@ small{color:#555}
 <!-- PEDIDOS -->
 <div id="pedidos" class="section active">
 <h2>Novo Pedido</h2>
+
+<input id="buscaCliente" placeholder="Buscar cliente cadastrado" oninput="buscarCliente()">
+<select id="listaClientes" onchange="selecionarCliente()"></select>
 
 <input id="cliente" placeholder="Nome do cliente">
 <input id="telefone" placeholder="Telefone">
@@ -105,6 +102,19 @@ small{color:#555}
 <div id="listaPedidos"></div>
 </div>
 
+<!-- CLIENTES -->
+<div id="clientes" class="section">
+<h2>Clientes</h2>
+
+<input id="nomeCliente" placeholder="Nome">
+<input id="telCliente" placeholder="Telefone">
+<input id="endCliente" placeholder="Endereço">
+<button onclick="addCliente()">Salvar Cliente</button>
+
+<hr>
+<div id="listaClientesCad"></div>
+</div>
+
 <!-- ENTREGAS -->
 <div id="entregas" class="section">
 <h2>Entregas</h2>
@@ -122,12 +132,6 @@ small{color:#555}
 <div id="resumo"></div>
 </div>
 
-<!-- HISTÓRICO DE CLIENTES -->
-<div id="historico" class="section">
-<h2>Histórico de Clientes</h2>
-<div id="listaClientes"></div>
-</div>
-
 <!-- PRODUTOS -->
 <div id="produtos" class="section">
 <h2>Produtos</h2>
@@ -143,6 +147,7 @@ small{color:#555}
 <script>
 let produtos = JSON.parse(localStorage.getItem("produtos")) || []
 let pedidos = JSON.parse(localStorage.getItem("pedidos")) || []
+let clientes = JSON.parse(localStorage.getItem("clientes")) || []
 let carrinho=[]
 let numPedido = localStorage.getItem("numPedido") || 1
 
@@ -150,6 +155,35 @@ function abrir(id){
 document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"))
 document.getElementById(id).classList.add("active")
 render()
+}
+
+/* CLIENTES */
+function addCliente(){
+if(!nomeCliente.value)return
+clientes.push({
+nome:nomeCliente.value,
+telefone:telCliente.value,
+endereco:endCliente.value
+})
+nomeCliente.value="";telCliente.value="";endCliente.value=""
+save();render()
+}
+
+function buscarCliente(){
+listaClientes.innerHTML=""
+clientes
+.filter(c=>c.nome.toLowerCase().includes(buscaCliente.value.toLowerCase()))
+.forEach((c,i)=>{
+listaClientes.innerHTML+=`<option value="${i}">${c.nome}</option>`
+})
+}
+
+function selecionarCliente(){
+let c=clientes[listaClientes.value]
+if(!c)return
+cliente.value=c.nome
+telefone.value=c.telefone
+endereco.value=c.endereco
 }
 
 /* PRODUTOS */
@@ -160,19 +194,6 @@ nomeProd.value="";valorProd.value=""
 save();render()
 }
 
-function renderProdutos(){
-listaProdutos.innerHTML=""
-produtos.forEach((p,i)=>{
-listaProdutos.innerHTML+=`
-<div class="prod-row">
-<input value="${p.nome}" onchange="produtos[${i}].nome=this.value;save()">
-<input type="number" value="${p.valor}" onchange="produtos[${i}].valor=+this.value;save()">
-<button onclick="produtos.splice(${i},1);save();render()">🗑️</button>
-</div>`
-})
-}
-
-/* BUSCA / CARRINHO */
 function buscarProduto(){
 listaBusca.innerHTML=""
 produtos
@@ -226,98 +247,55 @@ carrinho=[]
 save();render()
 }
 
-function tempoDecorrido(d){
-let m=Math.floor((new Date()-new Date(d))/60000)
-return m<1?"agora":m+" min"
-}
-
-function statusClasse(s){
-if(s=="Em preparo")return"status-preparo"
-if(s=="Saiu para entrega")return"status-entrega"
-return"status-entregue"
-}
-
-function statusPedido(i,v){
-pedidos[i].status=v
-save();render()
-}
-
-/* HISTÓRICO DE CLIENTES */
-function renderHistorico(){
-let mapa={}
-pedidos.forEach(p=>{
-if(!mapa[p.cliente]){
-mapa[p.cliente]={
-cliente:p.cliente,
-telefone:p.telefone,
-endereco:p.endereco,
-total:0,
-qtd:0,
-pedidos:[]
-}
-}
-mapa[p.cliente].total+=p.valor
-mapa[p.cliente].qtd++
-mapa[p.cliente].pedidos.push(p)
-})
-
-listaClientes.innerHTML=""
-Object.values(mapa).forEach(c=>{
-listaClientes.innerHTML+=`
-<div class="cliente-box">
-<b>${c.cliente}</b><br>
-📞 ${c.telefone}<br>
-📍 ${c.endereco}<br>
-📦 Pedidos: ${c.qtd}<br>
-💰 Total gasto: R$ ${c.total.toFixed(2)}
-<hr>
-${c.pedidos.map(p=>`
-<small>#${p.id} - R$ ${p.valor.toFixed(2)} (${new Date(p.data).toLocaleDateString()})</small>
-`).join("<br>")}
-</div>`
-})
-}
-
 /* RENDER */
 function render(){
-listaPedidos.innerHTML=""
-pedidos.forEach((p,i)=>{
-listaPedidos.innerHTML+=`
-<div class="pedido ${statusClasse(p.status)}">
-<b>#${p.id}</b> - ${p.cliente}<br>
-${p.descricao}<br>
-R$ ${p.valor.toFixed(2)}<br>
-${p.status} há ${tempoDecorrido(p.data)}
-<select onchange="statusPedido(${i},this.value)">
-<option ${p.status=="Em preparo"?"selected":""}>Em preparo</option>
-<option ${p.status=="Saiu para entrega"?"selected":""}>Saiu para entrega</option>
-<option ${p.status=="Entregue"?"selected":""}>Entregue</option>
-</select>
+listaClientesCad.innerHTML=""
+clientes.forEach((c,i)=>{
+listaClientesCad.innerHTML+=`
+<div class="cliente-box">
+<b>${c.nome}</b><br>
+${c.telefone}<br>
+${c.endereco}
+<button onclick="clientes.splice(${i},1);save();render()">🗑️</button>
 </div>`
 })
-renderProdutos()
-renderHistorico()
+
+listaPedidos.innerHTML=""
+listaEntregas.innerHTML=""
+pedidos.forEach(p=>{
+listaPedidos.innerHTML+=`
+<div class="pedido">
+<b>#${p.id}</b> - ${p.cliente}<br>
+${p.descricao}<br>
+R$ ${p.valor.toFixed(2)}
+</div>`
+if(p.endereco)
+listaEntregas.innerHTML+=`
+<b>#${p.id}</b> ${p.cliente}<br>${p.endereco}<hr>`
+})
+
+listaProdutos.innerHTML=""
+produtos.forEach((p,i)=>{
+listaProdutos.innerHTML+=`
+<div class="prod-row">
+<input value="${p.nome}" onchange="produtos[${i}].nome=this.value;save()">
+<input type="number" value="${p.valor}" onchange="produtos[${i}].valor=+this.value;save()">
+<button onclick="produtos.splice(${i},1);save();render()">🗑️</button>
+</div>`
+})
 }
 
 /* FINANCEIRO */
 function financeiro(tipo){
-let hoje=new Date()
 let total=0
-pedidos.filter(p=>p.status==="Entregue").forEach(p=>{
-let d=new Date(p.data)
-let ok=false
-if(tipo=="dia")ok=d.toDateString()==hoje.toDateString()
-if(tipo=="semana")ok=(hoje-d)/86400000<=7
-if(tipo=="mes")ok=d.getMonth()==hoje.getMonth()
-if(tipo=="geral")ok=true
-if(ok)total+=p.valor
-})
+pedidos.forEach(p=>total+=p.valor)
 resumo.innerHTML="Total: R$ "+total.toFixed(2)
 }
 
 function save(){
 localStorage.setItem("produtos",JSON.stringify(produtos))
 localStorage.setItem("pedidos",JSON.stringify(pedidos))
+localStorage.setItem("clientes",JSON.stringify(clientes))
 }
 
 render()
@@ -325,4 +303,3 @@ render()
 
 </body>
 </html>
-
